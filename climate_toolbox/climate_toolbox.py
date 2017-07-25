@@ -5,7 +5,6 @@ This file describes the process for computing weighted climate data
 import xarray as xr
 import numpy as np
 import pandas as pd
-from scipy import interpolate
 from scipy.ndimage import label
 from scipy.interpolate import griddata
 from six import string_types
