@@ -5,15 +5,16 @@ This file describes the process for computing weighted climate data
 import xarray as xr
 import numpy as np
 import pandas as pd
+import datafs
 from scipy.ndimage import label
 from scipy.interpolate import griddata
 from six import string_types
 import itertools
 import toolz
 
-# WEIGHTS_FILE = (
-#     'GCP/spatial/world-combo-new/segment_weights/' +
-#     'agglomerated-world-new_BCSD_grid_segment_weights_area_pop.csv')
+WEIGHTS_FILE = (
+    'GCP/spatial/world-combo-new/segment_weights/' +
+    'agglomerated-world-new_BCSD_grid_segment_weights_area_pop.csv')
 
 '''
 =================
@@ -73,8 +74,8 @@ def _fill_holes_xr(
     # remove infinite values
     ds[varname] = (
         ds[varname]
-            .where(~np.isinf(ds[varname]))
-            .where(ds[varname] < 1e10))
+        .where(~np.isinf(ds[varname]))
+        .where(ds[varname] < 1e10))
 
     for indexers in itertools.product(*tuple(
             [range(len(ds.coords[c])) for c in broadcast_dims])):
@@ -159,9 +160,9 @@ def _fill_holes(var, lat, lon, gridsize=0.25, minlat=-85, maxlat=85):
         var_box = var[ind_box]
         lat_box = lat[ind_box]
         lon_box = lon[ind_box]
-        not_missing = np.where(var_box.mask == False)
+        not_missing = np.where(~var_box.mask)
         points = np.column_stack([lon_box[not_missing], lat_box[not_missing]])
-        values = var_box[var_box.mask == False]
+        values = var_box[~var_box.mask]
         var_filled[ind_box] = griddata(
                 points,
                 values,
@@ -201,11 +202,12 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
     # Adjust lat and lon to make sure they are within (-90, 90) and (-180, 180)
     ds['_longitude_adjusted'] = (
         (ds._longitude - 360)
-            .where(ds._longitude > 180)
-            .fillna(ds._longitude))
+        .where(ds._longitude > 180)
+        .fillna(ds._longitude))
 
     # reassign the new coords to as the main lon coords
-    ds = (ds
+    ds = (
+        ds
         .swap_dims({'_longitude': '_longitude_adjusted'})
         .reindex({'_longitude_adjusted': sorted(ds._longitude_adjusted)}))
 
@@ -231,23 +233,21 @@ def _prepare_spatial_weights_data(weights_file=None):
     .. note:: unnecessary if we can standardize our input
     '''
 
-    if weights_file == None:
-        WEIGHTS_FILE = (
-        'GCP/spatial/world-combo-new/segment_weights/' +
-        'agglomerated-world-new_BCSD_grid_segment_weights_area_pop.csv')
+    if weights_file is None:
+        weights_file = WEIGHTS_FILE
 
         api = datafs.get_api()
         archive = api.get_archive(weights_file)
 
         with archive.open('r') as f:
             df = pd.read_csv(f)
-    else: 
+    else:
         df = pd.read_csv(weights_file)
 
     # Re-label out-of-bounds pixel centers
     df.set_value((df['pix_cent_x'] == 180.125), 'pix_cent_x', -179.875)
 
-    #probably totally unnecessary
+    # probably totally unnecessary
     df.drop_duplicates()
     df.index.names = ['reshape_index']
 
@@ -325,16 +325,21 @@ def _aggregate_reindexed_data_to_regions(
                 weights[aggwt].values,
                 dims={'reshape_index': weights.index.values})
 
-    ds[aggwt] = ds[aggwt].where(ds[aggwt] > 0).fillna(weights[backup_aggwt].values)
+    ds[aggwt] = (
+        ds[aggwt]
+        .where(ds[aggwt] > 0)
+        .fillna(weights[backup_aggwt].values))
 
     weighted = xr.Dataset({
         variable: (
-            (ds[variable]*ds[aggwt])
+            (
+                (ds[variable]*ds[aggwt])
                 .groupby(agglev)
-                .sum(dim='reshape_index') /
-            ds[aggwt]
+                .sum(dim='reshape_index')) /
+            (
+                ds[aggwt]
                 .groupby(agglev)
-                .sum(dim='reshape_index'))})
+                .sum(dim='reshape_index')))})
 
     return weighted
 
@@ -344,6 +349,7 @@ def _aggregate_reindexed_data_to_regions(
 Public Functions
 ================
 '''
+
 
 def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
     '''
@@ -428,6 +434,7 @@ def load_baseline(fp, varname, lon_name='lon', broadcast_dims=None):
 
     _fill_holes_xr(ds, varname, broadcast_dims=broadcast_dims)
     return _standardize_longitude_dimension(ds, lon_names=lon_names)
+
 
 def weighted_aggregate_grid_to_regions(
         ds,
