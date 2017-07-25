@@ -2,7 +2,12 @@
 History
 =======
 
-0.1.1 (current version)
+0.1.2 (current version)
+-----------------------
+
+* merge in bug fixes
+
+0.1.1 (2017-07-25)
 -----------------------
 
 * Various bug fixes (see :issue:`2`)
