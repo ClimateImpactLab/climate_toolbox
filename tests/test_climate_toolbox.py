@@ -20,16 +20,33 @@ import itertools
 #python utils
 
 #create pytest resource to be used across tests
+
+@pytest.fixture(scope='session')
+def lat():
+
+    return np.arange(-89.875, 90, 2)
+
+
+@pytest.fixture(scope='session')
+def lon():
+
+    return np.arange(0.125, 360.0, 2)
+
+
+@pytest.fixture(scope='session')
+def time():
+    
+    return pd.date_range(start=pd.datetime(2000, 1, 1), periods=10, freq='D')
+
+
 @pytest.fixture
-def clim_data():
+def clim_data(lat, lon, time):
     '''
     Generate fake climate data to do tests on
     '''
     np.random.seed(42)
-    temp = np.random.rand(720, 1440,365)*100
-    lat = np.arange(-89.875,90,0.25)
-    lon = np.arange(0.125, 360., .25)
-    time = pd.date_range(start=pd.datetime(2000, 1, 1), periods=365)
+    temp = np.random.rand(len(lat), len(lon), len(time))*100
+
     ds = xr.Dataset({'temperature': (['lat', 'lon', 'time'],  temp)}, 
                     coords={'lon':  lon,
                             'lat':  lat,
@@ -44,10 +61,12 @@ def test_clim_data(clim_data):
 
 
 @pytest.fixture
-def make_holes(clim_data):
+def make_holes(clim_data, lat):
+
+    N = len(lat) - 1
 
     tmp = clim_data['temperature'].values
-    array = np.random.randint(0,719, 1)
+    array = np.random.randint(0, N, 1)
     tmp[array] = np.nan
 
     clim_data['temperature'].values = tmp
@@ -64,20 +83,20 @@ def test_fill_holes(make_holes):
     assert make_holes.isnull().any() == False
 
 @pytest.fixture
-def weights():
+def weights(lat, lon):
 
     df = pd.DataFrame()
-    lat = np.random.choice(np.arange(-89.875,90,0.25), 1000)
-    lon = np.random.choice(np.arange(0.125, 360., .25), 1000)
-    df['lat'] = lat
-    df['lon'] = lon
+    lats = np.random.choice(lat, 100)
+    lons = np.random.choice(lon, 100)
+    df['lat'] = lats
+    df['lon'] = lons
     
     df['areawt'] = np.random.random(len(df['lon']))
     tmp = np.random.random(len(df['lon']))
     tmp[::5] = np.nan
     df['popwt'] = tmp
-    df['hierid'] = np.random.choice(np.arange(1,250), len(lat))
-    mapping = {h: np.random.choice(np.arange(1,20)) for h in df['hierid'].values}
+    df['hierid'] = np.random.choice(np.arange(1,25), len(lats))
+    mapping = {h: np.random.choice(np.arange(1,5)) for h in df['hierid'].values}
     df['ISO'] = [mapping[i] for i in df['hierid']]
     df.index.names = ['reshape_index']
 
