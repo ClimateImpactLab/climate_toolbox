@@ -67,7 +67,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Python Boilerplate'
+project = u'climate_toolbox'
 copyright = u"2017, ClimateImpactLab"
 
 # The version info for the project you're documenting, acts as replacement
@@ -222,7 +222,7 @@ latex_elements = {
 # [howto/manual]).
 latex_documents = [
     ('index', 'climate_toolbox.tex',
-     u'Python Boilerplate Documentation',
+     u'climate_toolbox Documentation',
      u'ClimateImpactLab', 'manual'),
 ]
 
@@ -253,7 +253,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'climate_toolbox',
-     u'Python Boilerplate Documentation',
+     u'climate_toolbox Documentation',
      [u'ClimateImpactLab'], 1)
 ]
 
@@ -268,7 +268,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'climate_toolbox',
-     u'Python Boilerplate Documentation',
+     u'climate_toolbox Documentation',
      u'ClimateImpactLab',
      'climate_toolbox',
      'One line description of project.',

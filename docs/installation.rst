@@ -8,13 +8,13 @@ Installation
 Stable release
 --------------
 
-To install Python Boilerplate, run this command in your terminal:
+To install climate_toolbox, run this command in your terminal:
 
 .. code-block:: console
 
     $ pip install climate_toolbox
 
-This is the preferred method to install Python Boilerplate, as it will always install the most recent stable release. 
+This is the preferred method to install climate_toolbox, as it will always install the most recent stable release. 
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
@@ -26,7 +26,7 @@ you through the process.
 From sources
 ------------
 
-The sources for Python Boilerplate can be downloaded from the `Github repo`_.
+The sources for climate_toolbox can be downloaded from the `Github repo`_.
 
 You can either clone the public repository:
 

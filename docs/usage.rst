@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use Python Boilerplate in a project::
+To use climate_toolbox in a project::
 
     import climate_toolbox

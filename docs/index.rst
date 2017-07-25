@@ -1,4 +1,4 @@
-Welcome to Python Boilerplate's documentation!
+Welcome to climate_toolbox's documentation!
 ====================================================================================================
 
 Contents:

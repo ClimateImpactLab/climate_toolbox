@@ -1,4 +1,4 @@
-* Python Boilerplate version:
+* climate_toolbox version:
 * Python version:
 * Operating System:
 
