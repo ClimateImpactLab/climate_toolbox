@@ -8,7 +8,7 @@ deploy:
   password:
     secure: QflWF856/iTx+Hb8KfKQ+PSiVkKeRE/Nm/eGI59b7E7y6fugAdlLG2RV9+9TOi1B+MauHqetLHPsahBmjT49O+apcVzhZesMTDqrvJRp7Pwtd9vhh85Koc3HUeO1SqApzUGg0Pv9GQibFlBMm909Xq5HKpOKrC4GMLJ/9pqfgOPGLYMiBuNa/mmby9YmCo+BxUMuJ7YAzMxiVkaCM4hjvdphF0KtbaS2KB237xe8jLqK6vBvNIF1q0M9L9Ziw579rDBDwMGG8h6Ti9WdhnMYZN5sKj3t61rsVNNbPPL2qH9N/gd66siEF/5fB8cEkP3oaSxt8YwC7FxCSEip6p2iW31S7rfzRsM9N79uB5qDJvxpi4DGkn185oXiHKafZAdJwtgiVN/Mt23n4i9rPb49CGTCIfpj2wxncyqXPW6NdL9j09zLjVzrHkFFAydrDzFWpNdYFbbkgnl1N3lYbLEl0/fUqe+BkNp10AQWGnAQ0Zbs20RpY03iBsxySOKc5dFsV76jTfWZRcrFteh18oGkYm7RWu5+zPApfb10dDXhjKOVgp9sPVrx38QZO+wHCnB7Ax6nr4NBgqRpgrG0+oy1n+mf+6sFgEfRk+Ij/V5KjkSU1bdKhXGguyyXYPjb9w5IDSJxEJjj1jQaVMM0ISTmA6ZA6sMTGY3IHm4ODh8Eb/s=
   provider: pypi
-  user: jgerardsimcock
+  user: justin_gerard
 env:
   matrix:
   - TEST_ENV=tox

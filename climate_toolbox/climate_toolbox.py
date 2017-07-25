@@ -219,7 +219,7 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
 
 
 @toolz.memoize
-def _prepare_spatial_weights_data(weights_file=WEIGHTS_FILE):
+def _prepare_spatial_weights_data(weights_file=None):
     '''
     Rescales the pix_cent_x colum values
 
@@ -232,11 +232,18 @@ def _prepare_spatial_weights_data(weights_file=WEIGHTS_FILE):
     .. note:: unnecessary if we can standardize our input
     '''
 
-    api = datafs.get_api()
-    archive = api.get_archive(weights_file)
+    if weights_file == None:
+        WEIGHTS_FILE = (
+        'GCP/spatial/world-combo-new/segment_weights/' +
+        'agglomerated-world-new_BCSD_grid_segment_weights_area_pop.csv')
 
-    with archive.open('r') as f:
-        df = pd.read_csv(f)
+        api = datafs.get_api()
+        archive = api.get_archive(weights_file)
+
+        with archive.open('r') as f:
+            df = pd.read_csv(f)
+    else: 
+        df = pd.read_csv(weights_file)
 
     # Re-label out-of-bounds pixel centers
     df.set_value((df['pix_cent_x'] == 180.125), 'pix_cent_x', -179.875)
