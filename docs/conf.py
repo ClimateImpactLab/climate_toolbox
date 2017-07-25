@@ -58,8 +58,8 @@ extensions = [
     'sphinx.ext.intersphinx']
 
 extlinks = {
-    'issue': ('https://github.com/ClimateImpactLab/DataFS/issues/%s', 'GH #'),
-    'pull': ('https://github.com/ClimateImpactLab/DataFS/pull/%s', 'PR #')}
+    'issue': ('https://github.com/ClimateImpactLab/climate_toolbox/issues/%s', 'GH #'),
+    'pull': ('https://github.com/ClimateImpactLab/climate_toolbox/pull/%s', 'PR #')}
 
 napoleon_numpy_docstring = True
 
