@@ -12,9 +12,9 @@ from six import string_types
 import itertools
 import toolz
 
-WEIGHTS_FILE = (
-    'GCP/spatial/world-combo-new/segment_weights/' +
-    'agglomerated-world-new_BCSD_grid_segment_weights_area_pop.csv')
+# WEIGHTS_FILE = (
+#     'GCP/spatial/world-combo-new/segment_weights/' +
+#     'agglomerated-world-new_BCSD_grid_segment_weights_area_pop.csv')
 
 '''
 =================
