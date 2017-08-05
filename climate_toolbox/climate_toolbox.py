@@ -422,8 +422,12 @@ def load_baseline(fp, varname, lon_name='lon', broadcast_dims=None):
     if broadcast_dims is None:
         broadcast_dims = tuple([])
 
-    with xr.open_dataset(fp) as ds:
-        ds.load()
+    if hasattr(fp, 'sel_points'):
+        ds = fp
+
+    else:
+        with xr.open_dataset(fp) as ds:
+            ds.load()
 
     if 'lat' in ds.data_vars:
         ds = ds.set_coords('lat')
