@@ -362,7 +362,7 @@ def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
     Parameters
     ----------
     fp: str
-        File path to dataset
+        File path or dataset
 
     varname: str
         Variable name to be read
@@ -401,7 +401,7 @@ def load_baseline(fp, varname, lon_name='lon', broadcast_dims=None):
     Parameters
     ----------
     fp: str
-        File path to dataset
+        File path or dataset
 
     varname: str
         Variable name to be read
