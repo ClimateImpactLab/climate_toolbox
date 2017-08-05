@@ -2,8 +2,17 @@
 History
 =======
 
-0.1.2 (current version)
+0.1.4 (current version)
 -----------------------
+
+
+0.1.3 (2017-08-04)
+------------------
+
+* Support passing a dataset (not just a filepath) into ``load_baseline`` and ``load_bcsd`` (:issue:`4`)
+
+0.1.2 (2017-07-25)
+------------------
 
 * merge in bug fixes
 
