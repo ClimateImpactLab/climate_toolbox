@@ -1,16 +1,21 @@
 '''
 This file describes the process for computing weighted climate data
 '''
-
+import toolz
+import itertools
 import xarray as xr
 import numpy as np
 import pandas as pd
 import datafs
 from scipy.ndimage import label
 from scipy.interpolate import griddata
+from shapely.geometry import shape, mapping
+from shapely.prepared import prep
+from shapely import speedups
+import geopandas as gpd
+from rtree.index import Index
+from rasterstats import zonal_stats
 from six import string_types
-import itertools
-import toolz
 
 WEIGHTS_FILE = (
     'GCP/spatial/world-combo-new/segment_weights/' +
@@ -350,6 +355,35 @@ def _aggregate_reindexed_data_to_regions(
 Public Functions
 ================
 '''
+
+
+    def gen_rtree(shpfl):
+        '''
+        Constructs an rtree spatial index for a gridded data set
+
+        1. Reads in gridded shapefile with geopandas
+        2. Iterates over the polygons in the shapefile and adds them to tree
+
+        '''
+        #initialize the rtree
+        tree = rtree.index.Index()
+
+        grid_polygons= gpd.read_file(shpfl)
+
+        count = -1
+        for gp in grid_polygons['geometry']:
+            count += 1
+            tree.insert(count, gp.bounds)
+
+        return tree 
+
+
+
+
+
+
+
+
 
 
 def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
