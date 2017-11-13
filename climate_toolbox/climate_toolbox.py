@@ -357,25 +357,223 @@ Public Functions
 '''
 
 
-    def gen_rtree(shpfl):
-        '''
-        Constructs an rtree spatial index for a gridded data set
+def intersect_grid_admin(grid_shp, admin_shp, method):
+    '''
+    Finds intersection point between two shapefiles, 
+    constructing a new segment-based shapefile with 
+    polygons and centroids for each new segment
+    
+    Parameters
+    ----------
 
-        1. Reads in gridded shapefile with geopandas
-        2. Iterates over the polygons in the shapefile and adds them to tree
+    shape1: geopandas dataframe
+    shape2: geopandas dataframe
+    method: str
 
-        '''
-        #initialize the rtree
-        tree = rtree.index.Index()
 
-        grid_polygons= gpd.read_file(shpfl)
+    Returns
+    -------
+    geopandas dataframe
+    '''
 
-        count = -1
-        for gp in grid_polygons['geometry']:
-            count += 1
-            tree.insert(count, gp.bounds)
+    #iterate over each segment in shape2 and find the intersection
+    #points between it and shape1
+    #Evaluate if the segment is an intersection or boundary
 
-        return tree 
+    from joblib import Parallel, delayed
+    import multiprocessing
+
+
+    grid_idx = grid_shp.sindex
+
+    if n_jobs == None:
+        n_jobs = multiprocessing.cpu_count()
+
+    with Parallel(n_jobs=n_jobs) as paralllelize:
+        segment_features = []
+        for i, feature in enumerate(admin_shp.itertuples(), 1)  :
+            if not feature.geometry.is_valid:
+                feature_geom = feature.geometry.buffer(0)
+
+            feature_geom = feature.geometry
+
+            near_grid_ids = list(grid_idx.intersection(feature_geom.bounds))
+
+            #get intersecting pixels
+            intersect_list = filter(admin_prepped.intersects, near_grid_gids)
+            # then, get list of pixels that are completely interior
+            interior_list = filter(admin_prepped.contains, intersect_list)
+
+
+            new_segments = []
+            admin_segment = paralllelize(delayed(generate_segment)(grid_geom, feature, method=interior) for grid_geom in interior_list)
+
+
+
+  
+def intersect_grid_admin(grid_shp, admin_shp, method=None):
+
+    '''
+    Finds intersection point between two shapefiles, 
+    constructing a new segment-based shapefile with 
+    polygons and centroids for each new segment
+    
+    Parameters
+    ----------
+
+    shape1: geopandas dataframe
+    shape2: geopandas dataframe
+    method: str
+
+
+    Returns
+    -------
+    geopandas dataframe
+    '''
+
+    #iterate over each segment in shape2 and find the intersection
+    #points between it and shape1
+    #Evaluate if the segment is an intersection or boundary
+    
+    
+    #create an rtree index 
+    grid_idx = grid_shp.sindex
+    segments = []
+
+    #since we are dealing with a pandas dataframe, we can use itertuples for fast iteration
+    for i, feature in enumerate(admin_shp.itertuples(), 1):
+        #print(feature)
+        #Passing a distance of 0 buffer cleans self-touching or self-crossing polygons
+        if not feature.geometry.is_valid:
+            feature_geom = feature.geometry.buffer(0)
+
+        else: feature_geom = feature.geometry
+        #get the indexes of pixes that may intersect
+        near_grid_ids = list(grid_idx.intersection(feature_geom.bounds))
+        #print(near_grid_ids)
+        #get the actual grid cells
+        near_grid_geoms = grid_shp.iloc[near_grid_ids]
+        #print(type(near_grid_geoms), len(near_grid_geoms))
+        #print(type(feature_geom))
+        intersect_list = filter(feature_geom.intersects, near_grid_geoms.geometry)
+        boundary_list = ifilterfalse(feature_geom.contains, intersect_list)
+
+        interior_list = filter(feature_geom.contains, intersect_list)
+        
+        
+        new_segments = [] 
+        for geom in interior_list:
+            print('gen_segment: interior')
+            new_segments.append(gen_segment(geom, feature, method='interior'))
+            
+        for geom in boundary_list:
+            print('gen_segment: boundary')
+
+            new_segments.append(gen_segment(geom, feature, method=method))
+            
+        
+        segments.append(new_segments)
+        
+        
+    flattened = [item for sublist in segments for item in sublist]
+    cols = flattened[0].keys()
+    segment_df = pd.GeoDataFrame(flattened, columns=cols, index=range(len(flattened)))
+
+    return segment_df
+
+
+def generate_segment(grid_geom, admin_geom, method=None):
+    '''
+    Computes the geometry and set of attributes associated with
+    a segment of a shapefile. 
+
+    Parameters
+    ----------
+    grid: shapely geometry
+
+    admin: shapely geometry
+
+    method: str 
+        'segment', 'overlap', 'interior', 'centroid'
+
+    Returns
+    -------
+        dict
+        dictionary for one segment representing a shapely geometry and segment features
+        such as key,values for pixel centroid 
+    '''
+    
+
+    if method == 'interior' || 'overlap':
+        seg_geom = grid_geom
+    elif method == 'segment':
+            seg_geom = admin_geom.intersection(grid_geom)
+    elif method == 'centroid':
+        if admin_geom.contains(grid_geom.centroid):
+            seg_geom = grid_geom
+        else:
+            return None
+    if seg_geom.geom_type in ['Polygon', 'MultiPolygon']:
+    
+        props = {'pix_cent_x': grid_geom.centroid.bounds[0],
+                 'pix_cent_y': grid_geom.centroid.bounds[1]}
+
+    props.update({k: v for k, v in admin_feat._asdict().items() if k != 'geometry'})
+
+    props['geometry'] = seg_geom
+
+    return props
+
+
+
+def generate_weights(shapefile_path, raster_path, weighting):
+    '''
+    calculates the weighted values for each segment
+
+    Parameters
+    ----------
+
+    shapefile_path: str
+        file path to shapefile data
+
+    raster_path: str
+        file path to raster data
+
+    weighting
+
+    Returns
+    -------
+    pandas DataFrame of segment by weighting 
+    '''
+    import geopandas as gpd
+    from rasterstats import zonal_stats
+
+    df = pd.DataFrame
+    stats = zonal_stats(shapefile_path, raster_path)
+
+    segment_layer = gpd.read_file(shapefile_path)
+    
+    for i, layer in enumerate(segment_layer):
+        headers = {}
+        headers['area'] = layer['geometry'].area
+        if stats[i]['mean'] is not None:
+            headers[weighting] = stats[i]['count'] * stats[i]['mean']
+
+        else:
+            headers[weighting] = 0
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
