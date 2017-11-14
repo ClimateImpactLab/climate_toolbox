@@ -348,74 +348,11 @@ def _aggregate_reindexed_data_to_regions(
                 .sum(dim='reshape_index')))})
 
     return weighted
-
-
-'''
-================
-Public Functions
-================
-'''
-
-
-def intersect_grid_admin(grid_shp, admin_shp, method):
-    '''
-    Finds intersection point between two shapefiles, 
-    constructing a new segment-based shapefile with 
-    polygons and centroids for each new segment
-    
-    Parameters
-    ----------
-
-    shape1: geopandas dataframe
-    shape2: geopandas dataframe
-    method: str
-
-
-    Returns
-    -------
-    geopandas dataframe
-    '''
-
-    #iterate over each segment in shape2 and find the intersection
-    #points between it and shape1
-    #Evaluate if the segment is an intersection or boundary
-
-    from joblib import Parallel, delayed
-    import multiprocessing
-
-
-    grid_idx = grid_shp.sindex
-
-    if n_jobs == None:
-        n_jobs = multiprocessing.cpu_count()
-
-    with Parallel(n_jobs=n_jobs) as paralllelize:
-        segment_features = []
-        for i, feature in enumerate(admin_shp.itertuples(), 1)  :
-            if not feature.geometry.is_valid:
-                feature_geom = feature.geometry.buffer(0)
-
-            feature_geom = feature.geometry
-
-            near_grid_ids = list(grid_idx.intersection(feature_geom.bounds))
-
-            #get intersecting pixels
-            intersect_list = filter(admin_prepped.intersects, near_grid_gids)
-            # then, get list of pixels that are completely interior
-            interior_list = filter(admin_prepped.contains, intersect_list)
-
-
-            new_segments = []
-            admin_segment = paralllelize(delayed(generate_segment)(grid_geom, feature, method=interior) for grid_geom in interior_list)
-
-
-
   
-def intersect_grid_admin(grid_shp, admin_shp, method=None):
-
+def intersect_grid_admin(grid_shp, admin_shp, method='None'):
     '''
     Finds intersection point between two shapefiles, 
-    constructing a new segment-based shapefile with 
+    constructing a new segment-based shapefile with features, 
     polygons and centroids for each new segment
     
     Parameters
@@ -430,59 +367,60 @@ def intersect_grid_admin(grid_shp, admin_shp, method=None):
     -------
     geopandas dataframe
     '''
+    
+    from itertools import ifilterfalse
 
-    #iterate over each segment in shape2 and find the intersection
-    #points between it and shape1
-    #Evaluate if the segment is an intersection or boundary
     
-    
-    #create an rtree index 
+    #generate an rtree index of gridded climate data
     grid_idx = grid_shp.sindex
     segments = []
-
-    #since we are dealing with a pandas dataframe, we can use itertuples for fast iteration
+    #iterate over admin geometry rows and 
     for i, feature in enumerate(admin_shp.itertuples(), 1):
-        #print(feature)
-        #Passing a distance of 0 buffer cleans self-touching or self-crossing polygons
+        
+        #if geometry is a string, turn it into a shapely geometry object
         if not feature.geometry.is_valid:
             feature_geom = feature.geometry.buffer(0)
 
         else: feature_geom = feature.geometry
-        #get the indexes of pixes that may intersect
+        
+        #get the indexes of climate grid pixe;s that may intersect admin grids
         near_grid_ids = list(grid_idx.intersection(feature_geom.bounds))
-        #print(near_grid_ids)
         #get the actual grid cells
         near_grid_geoms = grid_shp.iloc[near_grid_ids]
-        #print(type(near_grid_geoms), len(near_grid_geoms))
-        #print(type(feature_geom))
+        
+        #get the list of intersecting pixels
         intersect_list = filter(feature_geom.intersects, near_grid_geoms.geometry)
+        
+        #get list of pixels that intersect partially
         boundary_list = ifilterfalse(feature_geom.contains, intersect_list)
-
+        
+        #get list of pixels that are completely interior
         interior_list = filter(feature_geom.contains, intersect_list)
         
-        
-        new_segments = [] 
+        new_segments = []
+        #we can parallelize here
         for geom in interior_list:
-            print('gen_segment: interior')
+            #construct a geometry segment for each interior pixel
             new_segments.append(gen_segment(geom, feature, method='interior'))
-            
+        
+        #and here
         for geom in boundary_list:
-            print('gen_segment: boundary')
-
-            new_segments.append(gen_segment(geom, feature, method=method))
+            #construct a geometry segment for each intersecting pixel
+            new_segments.append(gen_segment(geom, feature, method='segment'))
             
         
         segments.append(new_segments)
-        
-        
+
+    #restructuring to generate new geodf
     flattened = [item for sublist in segments for item in sublist]
     cols = flattened[0].keys()
-    segment_df = pd.GeoDataFrame(flattened, columns=cols, index=range(len(flattened)))
-
+    
+    segment_df = gpd.GeoDataFrame(flattened, columns=cols)
+           
     return segment_df
 
 
-def generate_segment(grid_geom, admin_geom, method=None):
+def gen_segment(grid_geom, admin_feat, method=None):
     '''
     Computes the geometry and set of attributes associated with
     a segment of a shapefile. 
@@ -499,86 +437,144 @@ def generate_segment(grid_geom, admin_geom, method=None):
     Returns
     -------
         dict
-        dictionary for one segment representing a shapely geometry and segment features
-        such as key,values for pixel centroid 
+        dictionary for one segment representing a shapely geometry 
+        and segment features for pixel centroid 
     '''
     
-
-    if method == 'interior' || 'overlap':
+    if method == 'interior' or 'overlap':
         seg_geom = grid_geom
+    #finds the geometry of the intersecting segment
     elif method == 'segment':
-            seg_geom = admin_geom.intersection(grid_geom)
+            seg_geom = admin_feat.geometry.intersection(grid_geom)
+    #If the admin feature interior contains the boundary and interior 
+    #of the grid_geom object and their boundaries do not touch at all.
+    #Not sure we'll keep this
     elif method == 'centroid':
-        if admin_geom.contains(grid_geom.centroid):
-            seg_geom = grid_geom
-        else:
-            return None
+            if admin_feat.geometry.contains(grid_geom.centroid):
+                seg_geom = grid_geom
+            else:
+                return None
+    #set the boundaries of the grid_geom centroid as pix_cent_x and pix_cent_y
     if seg_geom.geom_type in ['Polygon', 'MultiPolygon']:
-    
-        props = {'pix_cent_x': grid_geom.centroid.bounds[0],
+        properties = {'pix_cent_x': grid_geom.centroid.bounds[0],
                  'pix_cent_y': grid_geom.centroid.bounds[1]}
 
-    props.update({k: v for k, v in admin_feat._asdict().items() if k != 'geometry'})
+    #need to combine features from admin and geometry of pix
+    properties.update({k: v for k, v in admin_feat._asdict().items() if k not in ['geometry', 'Index']})
+    properties['geometry'] = seg_geom
+    
+    return properties
 
-    props['geometry'] = seg_geom
 
-    return props
-
-
-
-def generate_weights(shapefile_path, raster_path, weighting):
+def generate_weights(shapefile_path, raster_path, weighting,header_ids=None):
     '''
     calculates the weighted values for each segment
+    Will calculate a area weighted average by default
 
     Parameters
     ----------
 
-    shapefile_path: str
-        file path to shapefile data
+    segment_shapefile_path: str
+        file path to segmented_shapefile data
 
     raster_path: str
         file path to raster data
 
-    weighting
+    weighting: str
+       the raster dataset variable you are measuring: 'crop', 'pop', etc
+    
+    header_ids: list
+        list of column headers to set for new dataframe/csv
 
     Returns
     -------
     pandas DataFrame of segment by weighting 
     '''
     import geopandas as gpd
+    import pandas as pd
     from rasterstats import zonal_stats
+    
 
-    df = pd.DataFrame
+    #main utility for computing statistics for each pixel
     stats = zonal_stats(shapefile_path, raster_path)
 
     segment_layer = gpd.read_file(shapefile_path)
     
-    for i, layer in enumerate(segment_layer):
-        headers = {}
-        headers['area'] = layer['geometry'].area
+    segs = []
+
+    weighting_list = [weighting, 'area']
+
+    #loop through our values
+    for i, seg in enumerate(segment_layer.itertuples()):
+        props = {}
+        #this simply generates the ara in the square pixel
+        #whatever the grid resolution is the area/pixel = resolution**2
+        props['area'] = seg.geometry.area
         if stats[i]['mean'] is not None:
-            headers[weighting] = stats[i]['count'] * stats[i]['mean']
+            #compute a total for that segment 
+            props[weighting] = stats[i]['count']*stats[i]['mean']
+        else: props[weighting] = 0
+        
+        #these are named tuples so we read them asdict
+        props.update({k:v for k, v in seg._asdict().items()})
+#         print(props)
+        segs.append(props)
 
-        else:
-            headers[weighting] = 0
-
-
-
-
-
-
-
-
-
-
+    #restructure our data a bit
+    headers = header_ids + weighting_list + ['pix_cent_x' ,'pix_cent_y']
+    seg_df = pd.DataFrame(segs, columns=headers, index=range(len(segs)))
 
 
+    #this provides totals across the regional designations we care about
+    #returns the total of the weights
+    totals_df = seg_df.groupby(header_ids).transform('sum')[weighting_list]
+    #some column relabeling
+    totals_df.columns = [wt + 'total' for wt in weighting_list]
+    #construct our new dataframe
+    df = pd.concat([seg_df, totals_df], axis=1)
+    
+    #compute the wts per segment
+    for wt in weighting_list:
+        df[wt+'wt'] = df[wt] / df[wt+'total']
 
+    return df
 
+'''
+================
+Public Functions
+================
+'''
 
+def create_segment_weights(grid_fp, admin_fp, raster_fp, weighting,  header_ids=None, intersection_method=None):
+    '''
+    Constructs dataframe of weights, feature values, and pixel centroids used in computing
+    the weighted climate for a given grid segment
 
+    Parameters
+    ----------
 
+    grid_fp: str
+        file path of climate grid shapefile
 
+    admin_fp: str
+        file path of administrative shapefile
+
+    raster_fp: str
+        file path of raster file
+
+    weighting: str
+        weighting that raster file is measuring i.e. crop, irrigation, population, etc
+
+    intersection_method: str
+        how to evaluate intersections of polygons i.e centroid, segment etc
+
+    header_ids: list
+        column header values for new dataframe
+
+    Returns
+    -------
+        pd.DataFrame
+    '''
 
 
 
