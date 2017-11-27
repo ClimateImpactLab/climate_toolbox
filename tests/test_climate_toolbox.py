@@ -160,7 +160,7 @@ def raster():
     '''
     pass
 
-@pytest.fixture(scop='session')
+@pytest.fixture(scope='session')
 def intersected(grid, polygons):
     '''
 
