@@ -9,9 +9,6 @@ import pandas as pd
 import datafs
 from scipy.ndimage import label
 from scipy.interpolate import griddata
-from shapely.geometry import shape, mapping
-from shapely.prepared import prep
-from shapely import speedups
 import geopandas as gpd
 from rtree.index import Index
 from rasterstats import zonal_stats
