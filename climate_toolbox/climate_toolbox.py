@@ -348,19 +348,17 @@ def _aggregate_reindexed_data_to_regions(
                 .sum(dim='reshape_index')))})
 
     return weighted
-  
 
-def intersect_grid_admin(grid_shp, admin_shp, n_jobs=None):
+ 
+def _intersect_grid_admin(grid_shp, admin_shp, n_jobs=1):
     '''
-    Finds intersection point between two shapefiles, 
-    constructing a new segment-based shapefile with features, 
-    polygons and centroids for each new segment
+    Generate a GeoDataFrame of intersected segments of two shapefiles 
     
     Parameters
     ----------
 
-    shape1: geopandas dataframe
-    shape2: geopandas dataframe
+    grid_shp: geopandas dataframe
+    admin_shp: geopandas dataframe
     n_jobs: num_jobs to run in parallel
 
 
@@ -371,62 +369,84 @@ def intersect_grid_admin(grid_shp, admin_shp, n_jobs=None):
 
     '''
     
-    from itertools import ifilterfalse
-    from joblib import Parallel, delayed
     from multiprocessing import cpu_count
+    from joblib import delayed, Parallel
+    import geopandas as gpd
     
     if not n_jobs:
-        n_jobs = cpu_count()
-
+        p  = Parallel(n_jobs=cpu_count(), verbose=2)
+        
+    else: p = Parallel(n_jobs=n_jobs, verbose=2)
     
     #generate an rtree index of gridded climate data
     grid_idx = grid_shp.sindex
-    segments = []
     #iterate over admin geometry rows and 
-    with Parallel(n_jobs=n_jobs) as p:
-        for feature in admin_shp.itertuples():
-
-            #if geometry is a string, turn it into a shapely geometry object
-            if not feature.geometry.is_valid:
-                feature_geom = feature.geometry.buffer(0)
-
-            else: feature_geom = feature.geometry
-
-            #get the indexes of climate grid pixe;s that may intersect admin grids
-            near_grid_ids = list(grid_idx.intersection(feature_geom.bounds))
-            #get the actual grid cells
-            near_grid_geoms = grid_shp.iloc[near_grid_ids]
-
-            #get the list of intersecting pixels
-            intersect_list = filter(feature_geom.intersects, near_grid_geoms.geometry)
-
-            #get list of pixels that intersect partially
-            boundary_list = ifilterfalse(feature_geom.contains, intersect_list)
-
-            #get list of pixels that are completely interior
-            interior_list = filter(feature_geom.contains, intersect_list)
-
-
-            #we can parallelize here
-            #construct a geometry segment for each interior pixel
-            segments.append(p(
-                            delayed(gen_segment)
-                            (geom, feature._asdict(), method='interior') for geom in interior_list))
-
-            #and parallelize here
-            #construct a geometry segment for each intersecting pixel
-            segments.append(p(
-                            delayed(gen_segment)
-                            (geom, feature._asdict(), method='segment') for geom in boundary_list))
-
-
-    #restructuring to generate new geodf
-    flattened = [item for sublist in segments for item in sublist]    
-           
+    segments = []
+    segments.append(
+                    p(delayed(gen_segments)
+                         (grid_idx=grid_idx, grid_shp=grid_shp, 
+                          feature=feature._asdict()) for feature in admin_shp.itertuples()))
+    
+    flattened = [item for sublist in segments for item in sublist]
+    
     return gpd.GeoDataFrame(flattened, columns=flattened[0].keys())
 
 
-def gen_segment(grid_geom, admin_feat, method=None):
+def _gen_segments(grid_idx, feature):
+    '''
+    Function applied to each administrative section to determine the gridded segments whose
+    boundaries are within or intersect the admin polygon
+    
+    Parameters
+    ----------
+    grid_idx: spatial index
+        Rtree index of gridded dataset
+    grid_shp: shapefile
+        gridded shapefile
+    feature: OrderedDict
+        dictionary of attributes for a admin feature
+        
+    Returns
+    -------
+        list
+            pixel-level centroids for all segments in an administrative feature
+    '''
+    from itertools import ifilterfalse
+
+
+    segments = []
+
+    #if geometry is a string, turn it into a shapely geometry object
+    if not feature.geometry.is_valid:
+        feature_geom = feature.geometry.buffer(0)
+
+    else: feature_geom = feature.geometry
+
+    #get the indexes of climate grid pixe;s that may intersect admin grids
+    near_grid_ids = list(grid_idx.intersection(feature_geom.bounds))
+    #get the actual grid cells
+    near_grid_features = grid_shp.iloc[near_grid_ids]
+
+    #get the list of intersecting pixels
+    intersect_list = filter(feature_geom.intersects, near_grid_features.geometry)
+
+    #get list of pixels that intersect partially
+    boundary_list = ifilterfalse(feature_geom.contains, intersect_list)
+
+    #get list of pixels that are completely interior
+    interior_list = filter(feature_geom.contains, intersect_list)
+
+    #construct a geometry segment for each interior pixel
+    for geom in interior_list:
+        segments.append(gen_segment(geom, feature._asdict(), method='interior'))
+
+    #construct a geometry segment for each intersecting pixel
+    for geom in boundary_list:
+        segments.append(gen_segment(geom, feature._asdict(), method='segment'))
+
+    return segments
+
+def _gen_segment(grid_geom, admin_feat, method=None):
     '''
     Computes the geometry and set of attributes associated with
     a segment of a shapefile. 
@@ -447,24 +467,16 @@ def gen_segment(grid_geom, admin_feat, method=None):
         and segment features for pixel centroid 
     '''
     
-    if method == 'interior' or 'overlap':
+    if method == 'interior':
         seg_geom = grid_geom
     #finds the geometry of the intersecting segment
-    elif method == 'segment':
+    else: method == 'segment':
             seg_geom = admin_feat.geometry.intersection(grid_geom)
-    #If the admin feature interior contains the boundary and interior 
-    #of the grid_geom object and their boundaries do not touch at all.
-    #Not sure we'll keep this
-    elif method == 'centroid':
-            if admin_feat.geometry.contains(grid_geom.centroid):
-                seg_geom = grid_geom
-            else:
-                return None
     #set the boundaries of the grid_geom centroid as pix_cent_x and pix_cent_y
-    if seg_geom.geom_type in ['Polygon', 'MultiPolygon']:
-        properties = {'pix_cent_x': grid_geom.centroid.bounds[0],
-                 'pix_cent_y': grid_geom.centroid.bounds[1]}
-
+        
+    properties = {'pix_cent_x': grid_geom.centroid.bounds[0],
+                 'pix_cent_y': grid_geom.centroid.bounds[1]} 
+        
     #need to combine features from admin and geometry of pix
     properties.update({k: v for k, v in admin_feat.items() if k not in ['geometry', 'Index']})
     properties['geometry'] = seg_geom
@@ -472,7 +484,7 @@ def gen_segment(grid_geom, admin_feat, method=None):
     return properties
 
 
-def generate_weights(shapefile_path, raster_path, weighting, header_ids=None):
+def _generate_weights(shapefile_path, raster_path, weighting, header_ids=None):
     '''
     calculates the weighted values for each segment
     Will calculate a area weighted average by default
@@ -523,7 +535,6 @@ def generate_weights(shapefile_path, raster_path, weighting, header_ids=None):
         
         #these are named tuples so we read them asdict
         props.update({k:v for k, v in seg._asdict().items()})
-#         print(props)
         segs.append(props)
 
     #restructure our data a bit
@@ -551,25 +562,25 @@ Public Functions
 ================
 '''
 
-def create_segment_weights_df(grid_fp, admin_fp, raster_fp, intersection_fp, weighting, intersection_method=None, header_ids=None):
+def create_segment_weights_df(grid_shp, admin_shp, raster_fp, weighting, intersected_fp=None, header_ids=None, n_jobs=None):
     '''
-    Constructs dataframe of weights, feature values, and pixel centroids used in computing
-    the weighted climate for a given grid segment
+    Constructs dataframe of weights, feature values, and pixel centroids 
+    used in computing the weighted climate for a given grid segment
 
     Parameters
     ----------
 
-    grid_fp: str
-        file path of climate grid shapefile
+    grid_shp: GeoDataFrame
+         climate grid DataFrame
 
-    admin_fp: str
-        file path of administrative shapefile
+    admin_shp: GeoDataFrame
+        administrative GeoDataFrame
 
     raster_fp: str
         file path of raster file
 
-    intersection_fp: str
-        file path to read/write intersected 
+    intersected_fp: str
+        file path to read/write intersected GeoDataFrame
 
     weighting: str
         weighting that raster file is measuring i.e. crop, irrigation, population, etc
@@ -586,12 +597,15 @@ def create_segment_weights_df(grid_fp, admin_fp, raster_fp, intersection_fp, wei
     '''
 
     #produce the intersected grid_file
-    intersected = intersect_grid_admin(grid_shp, admin_shp, n_jobs=n_jobs)
+    intersected = _intersect_grid_admin(grid_shp, admin_shp, n_jobs=n_jobs)
+
+    if intersected_fp:
+        intersected.to_file(intersected_fp)
 
     #write to disk, so we can read it in for our weight generation
 
     #create weights dataframe
-    df = generate_weights(intersected, raster_path, weighting, header_ids=header_ids)
+    df = _generate_weights(intersected, raster_fp, weighting, header_ids=header_ids)
 
     return df
 

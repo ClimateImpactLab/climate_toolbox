@@ -84,6 +84,9 @@ def test_fill_holes(make_holes):
 
 @pytest.fixture
 def weights(lat, lon):
+    '''
+    Create a weights fixture used for weighted computations
+    '''
 
     df = pd.DataFrame()
     lats = np.random.choice(lat, 100)
@@ -128,7 +131,79 @@ def test_weighting(clim_data, weights):
     assert wtd.temperature.isnull().any() == False
 
 
+@pytest.fixture(scope='session')
+def grid():
+    '''
+    Mock a gridded geospatial object
+    Construct a box with smaller sub units that can be intersected with 
+    a polygon to identify boundary and interior points
+    '''
 
+
+    pass
+
+@pytest.fixture(scope='session')
+def polygons(grid):
+    '''
+    Use the grid definition to construct a set of arbitrary shaped polygons
+    where the grid points are boundary and interior to the polygons 
+
+    '''
+    pass
+
+@pytest.fixture(scope='session')
+def raster():
+    '''
+    Construct a synthetic raster of for each grid cell.
+    Each cell should have a `count` and `mean` entry in a dictionary like object
+
+    '''
+    pass
+
+@pytest.fixture(scop='session')
+def intersected(grid, polygons):
+    '''
+
+    '''
+
+    intersected = ctb._intersect_grid_admin(grid, polygons)
+
+
+
+def test_grid_polygon_intersection(grid, polygons):
+    '''
+    Not sure what this would test, in some sort of set-theoretic way
+
+    We want to test that every entry has some area. If a segment has no area
+    It should not be included as a segment. 
+    
+    '''
+    #intersected = ctb._intersect_grid_admin(grid, polygons)
+
+    #something like this
+    #assert not intersected.geometry.area.isnull().any()
+    pass
+
+def test_generate_weights(intersected, polygons, raster):
+    '''
+    Test to make sure that our weighting operations are properly
+    allocating the pixel based weights to each grid cell and then
+    doing the appropriate ratio allocation for each admin unit
+    
+    '''
+
+    #weights = ctb._generate_weights(intersected, raster)
+
+    #this tests to make sure our area adds to 1 for each admin unit of interest
+    #assert weights['area_total'].all() == 1
+
+    #this tests to make sure that our socio var of interests add to 1 for each 
+    #unit admin unit of interest
+    #assert weights['socio_total'].all() == 1
+
+    #this tests whether or not we have values for each of our admin polygons
+    #assert weights.groupby('unit_id').sum() == len(polygons)
+    pass
 
 
 
