@@ -10,7 +10,6 @@ import datafs
 from scipy.ndimage import label
 from scipy.interpolate import griddata
 import geopandas as gpd
-from rtree.index import Index
 from rasterstats import zonal_stats
 from six import string_types
 

@@ -3,3 +3,5 @@ xarray
 scipy
 numpy
 toolz
+geopandas
+rasterstats
