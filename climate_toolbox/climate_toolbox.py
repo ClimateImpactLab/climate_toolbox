@@ -470,7 +470,7 @@ def _gen_segment(grid_geom, admin_feat, method=None):
     if method == 'interior':
         seg_geom = grid_geom
     #finds the geometry of the intersecting segment
-    else: method == 'segment':
+    elif method == 'segment':
             seg_geom = admin_feat.geometry.intersection(grid_geom)
     #set the boundaries of the grid_geom centroid as pix_cent_x and pix_cent_y
         
