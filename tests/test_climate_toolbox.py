@@ -138,7 +138,7 @@ def grid():
     Construct a box with smaller sub units that can be intersected with 
     a polygon to identify boundary and interior points
     '''
-
+    #construct squares
 
     pass
 
@@ -149,6 +149,7 @@ def polygons(grid):
     where the grid points are boundary and interior to the polygons 
 
     '''
+    #construct triangles and other points
     pass
 
 @pytest.fixture(scope='session')
@@ -158,6 +159,7 @@ def raster():
     Each cell should have a `count` and `mean` entry in a dictionary like object
 
     '''
+    #make up raster data
     pass
 
 @pytest.fixture(scope='session')
