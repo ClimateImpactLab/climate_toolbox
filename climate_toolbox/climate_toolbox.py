@@ -5,7 +5,6 @@ This file describes the process for computing weighted climate data
 import xarray as xr
 import numpy as np
 import pandas as pd
-import datafs
 from scipy.ndimage import label
 from scipy.interpolate import griddata
 from six import string_types
@@ -228,6 +227,8 @@ def _prepare_spatial_weights_data(weights_file=None):
     '''
     Rescales the pix_cent_x colum values
 
+    Requires the :py:mod:`datafs` package.
+
     Parameters
     ----------
     weights_file: str
@@ -236,6 +237,8 @@ def _prepare_spatial_weights_data(weights_file=None):
 
     .. note:: unnecessary if we can standardize our input
     '''
+
+    import datafs
 
     if weights_file is None:
         weights_file = WEIGHTS_FILE

@@ -75,7 +75,7 @@ def test_fill_holes(make_holes):
     assert make_holes.isnull().any()
     ctb._fill_holes_xr(make_holes, 'temperature')
 
-    assert not make_holes.isnull().any()
+    assert not make_holes.temperature.isnull().any()
 
 
 @pytest.fixture
@@ -104,7 +104,7 @@ def weights(lat, lon):
 
 def test_reindex_spatial_weights(clim_data, weights):
 
-    assert not clim_data.isnull().any()
+    assert not clim_data.temperature.isnull().any()
 
     ds = ctb._reindex_spatial_data_to_regions(clim_data, weights)
 
