@@ -193,10 +193,10 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
 
     '''
 
-    coords = np.array(ds.coords.keys())
+    dims = np.array(ds.dims)
 
-    assert len(coords[np.in1d(coords, lon_names)]) == 1
-    _lon_coord = coords[np.in1d(coords, ['longitude', 'lon'])][0]
+    assert len(dims[np.in1d(dims, lon_names)]) == 1
+    _lon_coord = dims[np.in1d(dims, ['longitude', 'lon'])][0]
 
     ds = ds.rename({_lon_coord: '_longitude'})
 
@@ -212,7 +212,7 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
         .swap_dims({'_longitude': '_longitude_adjusted'})
         .reindex({'_longitude_adjusted': sorted(ds._longitude_adjusted)}))
 
-    if '_longitude' in ds.coords:
+    if '_longitude' in ds.dims:
         ds = ds.drop('_longitude')
 
     ds = ds.rename({'_longitude_adjusted': _lon_coord})
