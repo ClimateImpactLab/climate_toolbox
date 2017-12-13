@@ -5,6 +5,7 @@ History
 0.1.4 (current version)
 -----------------------
 
+* Support vectorized indexing for xarray >= 0.10 (:issue:`10`)
 
 0.1.3 (2017-08-04)
 ------------------

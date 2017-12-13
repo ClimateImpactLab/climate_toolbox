@@ -12,6 +12,8 @@ from six import string_types
 import itertools
 import toolz
 
+from distutils.version import LooseVersion
+
 WEIGHTS_FILE = (
     'GCP/spatial/world-combo-new/segment_weights/' +
     'agglomerated-world-new_BCSD_grid_segment_weights_area_pop.csv')
@@ -262,26 +264,31 @@ def _prepare_spatial_weights_data(weights_file=None):
 def _reindex_spatial_data_to_regions(ds, df):
     '''
     Reindexes spatial and segment weight data to regions
-
     Enables region index-based math operations
-
     Parameters
     ----------
     ds: xarray Dataset
     df: pandas DataFrame
-
     Returns
     -------
     Xarray DataArray
-
-
     '''
-    res = ds.sel_points(
-        'reshape_index',
-        lat=df.lat.values,
-        lon=df.lon.values)
 
-    return res
+    # use vectorized indexing in xarray >= 0.10
+    if LooseVersion(xr.__version__) > LooseVersion('0.9.999'):
+
+        lon_indexer = xr.DataArray(df.lon.values, dims=('reshape_index', ))
+        lat_indexer = xr.DataArray(df.lat.values, dims=('reshape_index', ))
+
+        return ds.sel(lon=lon_indexer, lat=lat_indexer)
+
+    else:
+        res = ds.sel_points(
+            'reshape_index',
+            lat=df.lat.values,
+            lon=df.lon.values)
+
+        return res
 
 
 def _aggregate_reindexed_data_to_regions(
