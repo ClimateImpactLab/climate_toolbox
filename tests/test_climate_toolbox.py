@@ -52,7 +52,7 @@ def clim_data(lat, lon, time):
 
 def test_clim_data(clim_data):
 
-    assert not clim_data.isnull().any()
+    assert not clim_data.temperature.isnull().any()
 
 
 @pytest.fixture
@@ -72,8 +72,8 @@ def make_holes(clim_data, lat):
 # create pytest resource to be used acress tessts
 def test_fill_holes(make_holes):
 
-    assert make_holes.isnull().any()
-    ctb._fill_holes_xr(make_holes, 'temperature')
+    assert make_holes.temperature.isnull().any()
+    ctb._fill_holes_xr(make_holes, 'temperature', minlat=-90, maxlat=90)
 
     assert not make_holes.temperature.isnull().any()
 
