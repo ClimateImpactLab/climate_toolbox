@@ -547,31 +547,32 @@ Public Functions
 ================
 '''
 
-def grid_to_region(grid_gdf, admin_gdf, raster_fp, weighting, intersected_fp=None, header_ids=None):
+def grid_to_region(grid_gdf, admin_gdf, raster_fp, weighting, header_ids=None, intersected_fp=None):
     '''
-    Constructs dataframe of weights, feature values, and pixel centroids 
+    Constructs dataframe of weights, feature values, and pixel centroids
     used in computing the weighted climate for a given grid segment
 
     Parameters
     ----------
 
-    grid_shp: GeoDataFrame
+    grid_gdf: GeoDataFrame
          climate grid DataFrame
 
-    admin_shp: GeoDataFrame
+    admin_gdf: GeoDataFrame
         administrative GeoDataFrame
 
     raster_fp: str
         file path of raster file
     
-     weighting: str
+    weighting: str
         weighting that raster file is measuring i.e. crop, irrigation, population, etc
 
-    intersected_fp: str
-        file path to read/write intersected GeoDataFrame
-
     header_ids: list
-        column header values for new dataframe
+        list of string-formatted column header values for new dataframe
+
+    intersected_fp: str
+
+        file path to read/write intersected GeoDataFrame
 
     Returns
     -------
