@@ -6,6 +6,7 @@ import itertools
 import xarray as xr
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 import datafs
 import time
 from scipy.ndimage import label
@@ -13,6 +14,8 @@ from scipy.interpolate import griddata
 import geopandas as gpd
 from rasterstats import zonal_stats
 from six import string_types
+from itertools import ifilterfalse
+
 
 WEIGHTS_FILE = (
     'GCP/spatial/world-combo-new/segment_weights/' +
@@ -192,7 +195,6 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
 
     .. note:: this will be unnecessary if we standardize inputs. We can
     scale the longitude dim to between (-180, 180)
-
     '''
 
     coords = np.array(ds.coords.keys())
@@ -347,7 +349,7 @@ def _aggregate_reindexed_data_to_regions(
     return weighted
 
  
-def _intersect_grid_admin(grid_shp, admin_shp, n_jobs=1):
+def _intersect_grid_admin(grid_shp, admin_shp):
     '''
     Generate a GeoDataFrame of intersected segments of two shapefiles 
     
@@ -365,32 +367,19 @@ def _intersect_grid_admin(grid_shp, admin_shp, n_jobs=1):
     geometries and attributes for each pixelated segment of an admin region
 
     '''
-    
-    from multiprocessing import cpu_count
-    from itertools import chain
 
-    from joblib import delayed, Parallel
     import geopandas as gpd
-    
-    if not n_jobs:
-        p  = Parallel(n_jobs=cpu_count(), verbose=2)
-        
-    else: p = Parallel(n_jobs=n_jobs, verbose=2)
     
     #generate an rtree index of gridded climate data
     grid_idx = grid_shp.sindex
     #iterate over admin geometry rows and 
     segments = []
-    segments.append(
-                    p(delayed(_gen_segments)
-                         (grid_idx=grid_idx, grid_shp=grid_shp, 
-                          feature=feature._asdict()) for feature in admin_shp.itertuples()))
-    
+    for feature in admin_shp.itertuples():
 
-    chnd = chain.from_iterable(segments)
-    flattened = [item for sublist in chnd for item in sublist]
-    
-    return gpd.GeoDataFrame(flattened, columns=flattened[0].keys())
+        segments.append(_gen_segments(grid_idx=grid_idx, grid_shp=grid_shp, 
+                          feature=feature._asdict()))
+    flatten = [item for sublist in segments for item in sublist]
+    return gpd.GeoDataFrame(flatten, columns=flatten[0].keys())
 
 
 def _gen_segments(grid_idx, grid_shp, feature):
@@ -413,11 +402,8 @@ def _gen_segments(grid_idx, grid_shp, feature):
             pixel-level centroids for all segments in an administrative feature
     '''
     t1 = time.time()
-    from itertools import ifilterfalse
-
 
     segments = []
-
 
     #if geometry is a string, turn it into a shapely geometry object
     if not feature['geometry'].is_valid:
@@ -451,8 +437,6 @@ def _gen_segments(grid_idx, grid_shp, feature):
     print('generate_segments: ', t2 -t1)
     print('number_of_intersecting_segments:', len(near_grid_features))
 
-
-
     return segments
 
 def _gen_segment(grid_geom, admin_feat, method=None):
@@ -483,15 +467,14 @@ def _gen_segment(grid_geom, admin_feat, method=None):
             seg_geom = admin_feat['geometry'].intersection(grid_geom)
     #set the boundaries of the grid_geom centroid as pix_cent_x and pix_cent_y
         
-    properties = {'pix_cent_x': grid_geom.centroid.bounds[0],
-                 'pix_cent_y': grid_geom.centroid.bounds[1]} 
+    properties = {'lon': grid_geom.centroid.bounds[0],
+                 'lat': grid_geom.centroid.bounds[1]} 
         
     #need to combine features from admin and geometry of pix
     properties.update({k: v for k, v in admin_feat.items() if k not in ['geometry', 'Index']})
     properties['geometry'] = seg_geom
     
     return properties
-
 
 def _generate_weights(intersected, raster_path, weighting, header_ids=None):
     '''
@@ -517,10 +500,6 @@ def _generate_weights(intersected, raster_path, weighting, header_ids=None):
     -------
     pandas DataFrame of segment by weighting 
     '''
-    import geopandas as gpd
-    import pandas as pd
-    from rasterstats import zonal_stats
-    
 
     #main utility for computing statistics for each pixel
     stats = zonal_stats(intersected, raster_path)
@@ -545,9 +524,8 @@ def _generate_weights(intersected, raster_path, weighting, header_ids=None):
         segs.append(props)
 
     #restructure our data a bit
-    headers = header_ids + weighting_list + ['pix_cent_x' ,'pix_cent_y']
+    headers = header_ids + weighting_list + ['lat' ,'lon']
     seg_df = pd.DataFrame(segs, columns=headers, index=range(len(segs)))
-
 
     #this provides totals across the regional designations we care about
     #returns the total of the weights
@@ -569,7 +547,7 @@ Public Functions
 ================
 '''
 
-def create_segment_weights(grid_shp, admin_shp, raster_fp, weighting, intersected_fp=None, header_ids=None, n_jobs=None):
+def grid_to_region(grid_gdf, admin_gdf, raster_fp, weighting, intersected_fp=None, header_ids=None):
     '''
     Constructs dataframe of weights, feature values, and pixel centroids 
     used in computing the weighted climate for a given grid segment
@@ -585,15 +563,12 @@ def create_segment_weights(grid_shp, admin_shp, raster_fp, weighting, intersecte
 
     raster_fp: str
         file path of raster file
+    
+     weighting: str
+        weighting that raster file is measuring i.e. crop, irrigation, population, etc
 
     intersected_fp: str
         file path to read/write intersected GeoDataFrame
-
-    weighting: str
-        weighting that raster file is measuring i.e. crop, irrigation, population, etc
-
-    intersection_method: str
-        how to evaluate intersections of polygons i.e centroid, segment etc
 
     header_ids: list
         column header values for new dataframe
@@ -605,7 +580,7 @@ def create_segment_weights(grid_shp, admin_shp, raster_fp, weighting, intersecte
 
     #produce the intersected grid_file
     print('intersecting')
-    intersected = _intersect_grid_admin(grid_shp, admin_shp, n_jobs=n_jobs)
+    intersected = _intersect_grid_admin(grid_gdf, admin_gdf)
 
     print('writing intersection file')
     if intersected_fp:
@@ -614,7 +589,7 @@ def create_segment_weights(grid_shp, admin_shp, raster_fp, weighting, intersecte
     #write to disk, so we can read it in for our weight generation
 
     #create weights dataframe
-    print('generating weights file')
+    print('generating weights')
     df = _generate_weights(intersected, raster_fp, weighting, header_ids=header_ids)
 
     return df
