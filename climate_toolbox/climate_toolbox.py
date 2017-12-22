@@ -96,15 +96,110 @@ def _fill_holes_xr(
         if not np.isnan(sliced).any():
             continue
 
-        filled = _fill_holes(
-            var=np.ma.masked_invalid(sliced),
-            lat=ravel_lats,
-            lon=ravel_lons,
-            gridsize=0.25,
-            minlat=-85,
-            maxlat=85)
+        # filled = _fill_holes(
+        #     var=np.ma.masked_invalid(sliced),
+        #     lat=ravel_lats,
+        #     lon=ravel_lons,
+        #     gridsize=0.25,
+        #     minlat=-85,
+        #     maxlat=85)
 
-        ds[varname][slicer_dict] = filled
+        _fill_holes_iteratively(
+            da=ds[varname][slicer_dict],
+            method='linear')
+
+
+def _fill_holes_iteratively(da, lat='lat', lon='lon', method='linear'):
+    '''
+    Interpolates missing gridded data using a progressively widening bounding box
+
+
+    Parameters
+    ----------
+    da: DataArray with dims lat and lon
+
+    lat: str
+
+    lon: str
+
+    method: str
+        options include 'cubic' 1D and 2D, 'linear', 'nearest'
+
+    Returns
+        DataArray
+    '''
+
+    attempts = 0
+    max_attempts = 10
+
+    while da.isnull().any():
+        
+        attempts += 1
+        
+        if attempts > max_attempts:
+            warnings.warn('Maximum allowed attempts exceeded in interactive_fill_holes')
+            break
+
+        var = np.ma.masked_invalid(da.values)
+
+        missing = np.where((var.mask))
+        mp = np.zeros(var.shape)
+        mp[missing] = 1
+
+        ptch, n_ptch = label(mp)
+
+        if n_ptch * 2 > max_attempts:
+            max_attempts = n_ptch * 10
+            
+        ilat = np.where((ptch == 1).any(axis=1))[0]
+        imin_lat = min(ilat)
+        imax_lat = max(ilat)
+        
+        ilon = np.where((ptch == 1).any(axis=0))[0]
+        imin_lon = min(ilon)
+        imax_lon = max(ilon)
+
+        while (da.isnull()).isel(lat=imin_lat, lon=slice(imin_lon, imax_lon)).any():
+            imin_lat = max(imin_lat - 1, 0)
+            if imin_lat == 0:
+                break
+
+        while (da.isnull()).isel(lat=imax_lat, lon=slice(imin_lon, imax_lon)).any():
+            imax_lat = min(imax_lat + 1, len(da.lat) - 1)
+            if imax_lat == len(da.lat) - 1:
+                break
+
+        while (da.isnull()).isel(lat=slice(imin_lat, imax_lat), lon=imin_lon).any():
+            imin_lon = max(imin_lon - 1, 0)
+            if imin_lon == 0:
+                break
+
+        while (da.isnull()).isel(lat=slice(imin_lat, imax_lat), lon=imax_lon).any():
+            imax_lon = min(imax_lon + 1, len(da.lon) - 1)
+            if imax_lon == len(da.lon) - 1:
+                break
+
+        ravel_lats, ravel_lons = (
+            np.meshgrid(da.coords[lat].values, da.coords[lon].values))
+
+        inds_lon, inds_lat = np.where(
+                (ravel_lats >= ravel_lats[imin_lat]) &
+                (ravel_lats <= ravel_lats[imax_lat]) &
+                (ravel_lons >= ravel_lons[imin_lon]) &
+                (ravel_lons <= ravel_lons[imax_lon]))
+
+        var_box = var[inds_lat, inds_lon]
+        lat_box = ravel_lats[inds_lon, inds_lat]
+        lon_box = ravel_lons[inds_lon, inds_lat]
+        not_missing = np.where(~var_box.mask)
+        points = np.column_stack([lat_box[not_missing].T, lon_box[not_missing].T])
+        values = var_box[~var_box.mask]
+
+        da.values[inds_lat, inds_lon] = griddata(
+                points,
+                values,
+                (lat_box, lon_box),
+                method=method)
 
 
 def _fill_holes(var, lat, lon, gridsize=0.25, minlat=-85, maxlat=85):
