@@ -18,7 +18,8 @@ requirements = [
 
 setup_requirements = [
     'pytest-runner',
-    # TODO(jgerardsimcock): put setup requirements (distutils extensions, etc.) here
+    # TODO(jgerardsimcock): put setup requirements
+    # (distutils extensions, etc.) here
 ]
 
 test_requirements = [
@@ -28,7 +29,7 @@ test_requirements = [
 
 setup(
     name='climate_toolbox',
-    version='0.1.3',
+    version='0.1.4',
     description="Tools for climate data wrangling",
     long_description=readme + '\n\n' + history,
     author="Justin Simcock",
