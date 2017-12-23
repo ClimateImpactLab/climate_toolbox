@@ -10,6 +10,7 @@ from scipy.interpolate import griddata
 from six import string_types
 import itertools
 import toolz
+import warnings
 
 from distutils.version import LooseVersion
 
@@ -34,7 +35,8 @@ def _fill_holes_xr(
         lat_name='lat',
         gridsize=0.25,
         minlat=-85,
-        maxlat=85):
+        maxlat=85,
+        method='linear'):
     '''
     Fill NA values inplace in a gridded dataset
 
@@ -104,12 +106,12 @@ def _fill_holes_xr(
         #     minlat=-85,
         #     maxlat=85)
 
-        _fill_holes_iteratively(
+        iterative_fill_holes(
             da=ds[varname][slicer_dict],
-            method='linear')
+            method=method)
 
 
-def _fill_holes_iteratively(da, lat='lat', lon='lon', method='linear'):
+def iterative_fill_holes(da, lat='lat', lon='lon', method='linear'):
     '''
     Interpolates missing gridded data using a progressively widening bounding box
 
@@ -137,7 +139,7 @@ def _fill_holes_iteratively(da, lat='lat', lon='lon', method='linear'):
         attempts += 1
         
         if attempts > max_attempts:
-            warnings.warn('Maximum allowed attempts exceeded in interactive_fill_holes')
+            warnings.warn('Maximum allowed attempts exceeded in iterative_fill_holes')
             break
 
         var = np.ma.masked_invalid(da.values)
@@ -149,13 +151,15 @@ def _fill_holes_iteratively(da, lat='lat', lon='lon', method='linear'):
         ptch, n_ptch = label(mp)
 
         if n_ptch * 2 > max_attempts:
-            max_attempts = n_ptch * 10
+            max_attempts = n_ptch * 2
+
+        ipatch = np.random.choice(range(n_ptch))
             
-        ilat = np.where((ptch == 1).any(axis=1))[0]
+        ilat = np.where((ptch == ipatch).any(axis=1))[0]
         imin_lat = min(ilat)
         imax_lat = max(ilat)
         
-        ilon = np.where((ptch == 1).any(axis=0))[0]
+        ilon = np.where((ptch == ipatch).any(axis=0))[0]
         imin_lon = min(ilon)
         imax_lon = max(ilon)
 
