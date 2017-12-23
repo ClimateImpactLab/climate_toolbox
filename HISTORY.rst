@@ -5,7 +5,10 @@ History
 0.1.4 (current version)
 -----------------------
 
-* Support vectorized indexing for xarray >= 0.10 (:issue:`10`)
+* Support vectorized indexing for xarray >= 0.10 in :py:func:`climate_toolbox.climate_toolbox._reindex_spatial_data_to_regions` (:issue:`10`)
+* Support iteratively increasing bounding box in :py:func:`~climate_toolbox.climate_toolbox._fill_holes_xr` (:issue:`11`).
+* Support multiple interpolation methods (linear and cubic) in :py:func:`~climate_toolbox.climate_toolbox._fill_holes_xr` (:issue:`12`).
+* Fix bug causing tests to pass no matter what
 
 0.1.3 (2017-08-04)
 ------------------
