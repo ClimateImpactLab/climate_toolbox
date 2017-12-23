@@ -69,12 +69,11 @@ def _fill_holes_xr(
     minlon : float, optional
         latitude above which no values will be interpolated (default 85)
 
+    method : 
+
     '''
     if isinstance(broadcast_dims, string_types):
         broadcast_dims = (broadcast_dims, )
-
-    ravel_lons, ravel_lats = (
-        np.meshgrid(ds.coords[lon_name].values, ds.coords[lat_name].values))
 
     # remove infinite values
     ds[varname] = (
@@ -98,20 +97,14 @@ def _fill_holes_xr(
         if not np.isnan(sliced).any():
             continue
 
-        # filled = _fill_holes(
-        #     var=np.ma.masked_invalid(sliced),
-        #     lat=ravel_lats,
-        #     lon=ravel_lons,
-        #     gridsize=0.25,
-        #     minlat=-85,
-        #     maxlat=85)
-
         iterative_fill_holes(
             da=ds[varname][slicer_dict],
+            lat_name=lat_name,
+            lon_name=lon_name,
             method=method)
 
 
-def iterative_fill_holes(da, lat='lat', lon='lon', method='linear'):
+def iterative_fill_holes(da, lat_name='lat', lon_name='lon', method='linear'):
     '''
     Interpolates missing gridded data using a progressively widening bounding box
 
@@ -120,9 +113,9 @@ def iterative_fill_holes(da, lat='lat', lon='lon', method='linear'):
     ----------
     da: DataArray with dims lat and lon
 
-    lat: str
+    lat_name: str
 
-    lon: str
+    lon_name: str
 
     method: str
         options include 'cubic' 1D and 2D, 'linear', 'nearest'
@@ -163,28 +156,28 @@ def iterative_fill_holes(da, lat='lat', lon='lon', method='linear'):
         imin_lon = min(ilon)
         imax_lon = max(ilon)
 
-        while (da.isnull()).isel(lat=imin_lat, lon=slice(imin_lon, imax_lon)).any():
+        while (da.isnull()).isel(**{lat_name: imin_lat, lon_name:slice(imin_lon, imax_lon)}).any():
             imin_lat = max(imin_lat - 1, 0)
             if imin_lat == 0:
                 break
 
-        while (da.isnull()).isel(lat=imax_lat, lon=slice(imin_lon, imax_lon)).any():
-            imax_lat = min(imax_lat + 1, len(da.lat) - 1)
-            if imax_lat == len(da.lat) - 1:
+        while (da.isnull()).isel(**{lat_name: imax_lat, lon_name:slice(imin_lon, imax_lon)}).any():
+            imax_lat = min(imax_lat + 1, len(da.coords[lat_name]) - 1)
+            if imax_lat == len(da.coords[lat_name]) - 1:
                 break
 
-        while (da.isnull()).isel(lat=slice(imin_lat, imax_lat), lon=imin_lon).any():
+        while (da.isnull()).isel(**{lat_name: slice(imin_lat, imax_lat), lon_name:imin_lon}).any():
             imin_lon = max(imin_lon - 1, 0)
             if imin_lon == 0:
                 break
 
-        while (da.isnull()).isel(lat=slice(imin_lat, imax_lat), lon=imax_lon).any():
+        while (da.isnull()).isel(**{lat_name: slice(imin_lat, imax_lat), lon_name:imax_lon}).any():
             imax_lon = min(imax_lon + 1, len(da.lon) - 1)
             if imax_lon == len(da.lon) - 1:
                 break
 
         ravel_lats, ravel_lons = (
-            np.meshgrid(da.coords[lat].values, da.coords[lon].values))
+            np.meshgrid(da.coords[lat_name].values, da.coords[lon_name].values))
 
         inds_lon, inds_lat = np.where(
                 (ravel_lats >= ravel_lats[imin_lat]) &
@@ -204,74 +197,6 @@ def iterative_fill_holes(da, lat='lat', lon='lon', method='linear'):
                 values,
                 (lat_box, lon_box),
                 method=method)
-
-
-def _fill_holes(var, lat, lon, gridsize=0.25, minlat=-85, maxlat=85):
-    '''
-    Interpolates the missing values between points on grid
-
-    Parameters
-    ----------
-    var: masked np.array
-        array of climate values
-
-    lat: masked np.array
-        array of latitude values
-
-    lon: masked np. array
-        array of longitude values
-
-    gridsize: int
-        corresponds to degrees on the grid for climate data
-
-    minlat: int
-        corresponds to min latitude values to include. Used to remove poles
-
-    maxlat: int
-        corresponds to max lat values to include. Used to remove poles
-
-
-    '''
-    # fill the missing value regions by linear interpolation
-    # pass if no missing values
-    if not np.ma.is_masked(var):
-        return var
-    # or the missing values are only in polar regions
-    if not var.mask[20: -20, :].any():
-        return var
-
-    # fill the holes
-    var_filled = var[:]
-    missing = np.where((var.mask) & (lat > minlat) & (lat < maxlat))
-    mp = np.zeros(var.shape)
-    mp[missing] = 1
-    ptch, n_ptch = label(mp)
-
-    for p in range(1, n_ptch+1):
-
-        ind_ptch = np.where(ptch == p)
-        lat_ptch = lat[ind_ptch]
-        lon_ptch = lon[ind_ptch]
-
-        ind_box = np.where(
-                (lat <= np.max(lat_ptch)+gridsize) &
-                (lat >= np.min(lat_ptch)-gridsize) &
-                (lon <= np.max(lon_ptch)+gridsize) &
-                (lon >= np.min(lon_ptch)-gridsize))
-
-        var_box = var[ind_box]
-        lat_box = lat[ind_box]
-        lon_box = lon[ind_box]
-        not_missing = np.where(~var_box.mask)
-        points = np.column_stack([lon_box[not_missing], lat_box[not_missing]])
-        values = var_box[~var_box.mask]
-        var_filled[ind_box] = griddata(
-                points,
-                values,
-                (lon_box, lat_box),
-                method='linear')
-
-    return var_filled
 
 
 def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
