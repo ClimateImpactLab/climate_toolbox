@@ -18,7 +18,8 @@ requirements = [
 
 setup_requirements = [
     'pytest-runner',
-    # TODO(jgerardsimcock): put setup requirements (distutils extensions, etc.) here
+    # TODO(jgerardsimcock): put setup requirements
+    # (distutils extensions, etc.) here
 ]
 
 test_requirements = [
