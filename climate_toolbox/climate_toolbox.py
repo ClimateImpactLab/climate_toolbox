@@ -6,16 +6,27 @@ import itertools
 import xarray as xr
 import numpy as np
 import pandas as pd
+<<<<<<< HEAD
 import geopandas as gpd
 import datafs
 import time
+=======
+>>>>>>> master
 from scipy.ndimage import label
 from scipy.interpolate import griddata
 import geopandas as gpd
 from rasterstats import zonal_stats
 from six import string_types
+<<<<<<< HEAD
 from itertools import ifilterfalse
 
+=======
+import itertools
+import toolz
+import warnings
+
+from distutils.version import LooseVersion
+>>>>>>> master
 
 WEIGHTS_FILE = (
     'GCP/spatial/world-combo-new/segment_weights/' +
@@ -29,6 +40,7 @@ Private Functions
 =================
 '''
 
+
 def _fill_holes_xr(
         ds,
         varname,
@@ -37,7 +49,8 @@ def _fill_holes_xr(
         lat_name='lat',
         gridsize=0.25,
         minlat=-85,
-        maxlat=85):
+        maxlat=85,
+        method='linear'):
     '''
     Fill NA values inplace in a gridded dataset
 
@@ -70,12 +83,11 @@ def _fill_holes_xr(
     minlon : float, optional
         latitude above which no values will be interpolated (default 85)
 
+    method :
+
     '''
     if isinstance(broadcast_dims, string_types):
         broadcast_dims = (broadcast_dims, )
-
-    ravel_lons, ravel_lats = (
-        np.meshgrid(ds.coords[lon_name].values, ds.coords[lat_name].values))
 
     # remove infinite values
     ds[varname] = (
@@ -99,83 +111,124 @@ def _fill_holes_xr(
         if not np.isnan(sliced).any():
             continue
 
-        filled = _fill_holes(
-            var=np.ma.masked_invalid(sliced),
-            lat=ravel_lats,
-            lon=ravel_lons,
-            gridsize=0.25,
-            minlat=-85,
-            maxlat=85)
-
-        ds[varname][slicer_dict] = filled
+        iterative_fill_holes(
+            da=ds[varname][slicer_dict],
+            lat_name=lat_name,
+            lon_name=lon_name,
+            method=method)
 
 
-def _fill_holes(var, lat, lon, gridsize=0.25, minlat=-85, maxlat=85):
+def iterative_fill_holes(da, lat_name='lat', lon_name='lon', method='linear'):
     '''
-    Interpolates the missing values between points on grid
+    Interpolates missing data within a progressively widening bounding box
+
 
     Parameters
     ----------
-    var: masked np.array
-        array of climate values
+    da: DataArray with dims lat and lon
 
-    lat: masked np.array
-        array of latitude values
+    lat_name: str
 
-    lon: masked np. array
-        array of longitude values
+    lon_name: str
 
-    gridsize: int
-        corresponds to degrees on the grid for climate data
+    method: str
+        options include 'cubic' 1D and 2D, 'linear', 'nearest'
 
-    minlat: int
-        corresponds to min latitude values to include. Used to remove poles
-
-    maxlat: int
-        corresponds to max lat values to include. Used to remove poles
-
-
+    Returns
+        DataArray
     '''
-    # fill the missing value regions by linear interpolation
-    # pass if no missing values
-    if not np.ma.is_masked(var):
-        return var
-    # or the missing values are only in polar regions
-    if not var.mask[20: -20, :].any():
-        return var
 
-    # fill the holes
-    var_filled = var[:]
-    missing = np.where((var.mask) & (lat > minlat) & (lat < maxlat))
-    mp = np.zeros(var.shape)
-    mp[missing] = 1
-    ptch, n_ptch = label(mp)
+    attempts = 0
+    max_attempts = 10
 
-    for p in range(1, n_ptch+1):
+    while da.isnull().any():
 
-        ind_ptch = np.where(ptch == p)
-        lat_ptch = lat[ind_ptch]
-        lon_ptch = lon[ind_ptch]
+        attempts += 1
 
-        ind_box = np.where(
-                (lat <= np.max(lat_ptch)+gridsize) &
-                (lat >= np.min(lat_ptch)-gridsize) &
-                (lon <= np.max(lon_ptch)+gridsize) &
-                (lon >= np.min(lon_ptch)-gridsize))
+        if attempts > max_attempts:
+            warnings.warn(
+                'Maximum allowed attempts exceeded in iterative_fill_holes')
 
-        var_box = var[ind_box]
-        lat_box = lat[ind_box]
-        lon_box = lon[ind_box]
+            break
+
+        var = np.ma.masked_invalid(da.values)
+
+        missing = np.where((var.mask))
+        mp = np.zeros(var.shape)
+        mp[missing] = 1
+
+        ptch, n_ptch = label(mp)
+
+        if n_ptch * 2 > max_attempts:
+            max_attempts = n_ptch * 2
+
+        ipatch = np.random.choice(range(n_ptch))
+
+        ilat = np.where((ptch == ipatch).any(axis=1))[0]
+        imin_lat = min(ilat)
+        imax_lat = max(ilat)
+
+        ilon = np.where((ptch == ipatch).any(axis=0))[0]
+        imin_lon = min(ilon)
+        imax_lon = max(ilon)
+
+        while (da.isnull()).isel(**{
+                lat_name: imin_lat,
+                lon_name: slice(imin_lon, imax_lon)}).any():
+
+            imin_lat = max(imin_lat - 1, 0)
+            if imin_lat == 0:
+                break
+
+        while (da.isnull()).isel(**{
+                lat_name: imax_lat,
+                lon_name: slice(imin_lon, imax_lon)}).any():
+
+            imax_lat = min(imax_lat + 1, len(da.coords[lat_name]) - 1)
+            if imax_lat == len(da.coords[lat_name]) - 1:
+                break
+
+        while (da.isnull()).isel(**{
+                lat_name: slice(imin_lat, imax_lat),
+                lon_name: imin_lon}).any():
+
+            imin_lon = max(imin_lon - 1, 0)
+            if imin_lon == 0:
+                break
+
+        while (da.isnull()).isel(**{
+                lat_name: slice(imin_lat, imax_lat),
+                lon_name: imax_lon}).any():
+
+            imax_lon = min(imax_lon + 1, len(da.lon) - 1)
+            if imax_lon == len(da.lon) - 1:
+                break
+
+        ravel_lats, ravel_lons = (
+            np.meshgrid(
+                da.coords[lat_name].values, da.coords[lon_name].values))
+
+        inds_lon, inds_lat = np.where(
+                (ravel_lats >= ravel_lats[imin_lat]) &
+                (ravel_lats <= ravel_lats[imax_lat]) &
+                (ravel_lons >= ravel_lons[imin_lon]) &
+                (ravel_lons <= ravel_lons[imax_lon]))
+
+        var_box = var[inds_lat, inds_lon]
+        lat_box = ravel_lats[inds_lon, inds_lat]
+        lon_box = ravel_lons[inds_lon, inds_lat]
         not_missing = np.where(~var_box.mask)
-        points = np.column_stack([lon_box[not_missing], lat_box[not_missing]])
+
+        points = np.column_stack(
+            [lat_box[not_missing].T, lon_box[not_missing].T])
+
         values = var_box[~var_box.mask]
-        var_filled[ind_box] = griddata(
+
+        da.values[inds_lat, inds_lon] = griddata(
                 points,
                 values,
-                (lon_box, lat_box),
-                method='linear')
-
-    return var_filled
+                (lat_box, lon_box),
+                method=method)
 
 
 def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
@@ -197,10 +250,10 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
     scale the longitude dim to between (-180, 180)
     '''
 
-    coords = np.array(ds.coords.keys())
+    dims = np.array(ds.dims)
 
-    assert len(coords[np.in1d(coords, lon_names)]) == 1
-    _lon_coord = coords[np.in1d(coords, ['longitude', 'lon'])][0]
+    assert len(dims[np.in1d(dims, lon_names)]) == 1
+    _lon_coord = dims[np.in1d(dims, ['longitude', 'lon'])][0]
 
     ds = ds.rename({_lon_coord: '_longitude'})
 
@@ -216,7 +269,7 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
         .swap_dims({'_longitude': '_longitude_adjusted'})
         .reindex({'_longitude_adjusted': sorted(ds._longitude_adjusted)}))
 
-    if '_longitude' in ds.coords:
+    if '_longitude' in ds.dims:
         ds = ds.drop('_longitude')
 
     ds = ds.rename({'_longitude_adjusted': _lon_coord})
@@ -229,6 +282,8 @@ def _prepare_spatial_weights_data(weights_file=None):
     '''
     Rescales the pix_cent_x colum values
 
+    Requires the :py:mod:`datafs` package.
+
     Parameters
     ----------
     weights_file: str
@@ -237,6 +292,8 @@ def _prepare_spatial_weights_data(weights_file=None):
 
     .. note:: unnecessary if we can standardize our input
     '''
+
+    import datafs
 
     if weights_file is None:
         weights_file = WEIGHTS_FILE
@@ -266,26 +323,31 @@ def _prepare_spatial_weights_data(weights_file=None):
 def _reindex_spatial_data_to_regions(ds, df):
     '''
     Reindexes spatial and segment weight data to regions
-
     Enables region index-based math operations
-
     Parameters
     ----------
     ds: xarray Dataset
     df: pandas DataFrame
-
     Returns
     -------
     Xarray DataArray
-
-
     '''
-    res = ds.sel_points(
-        'reshape_index',
-        lat=df.lat.values,
-        lon=df.lon.values)
 
-    return res
+    # use vectorized indexing in xarray >= 0.10
+    if LooseVersion(xr.__version__) > LooseVersion('0.9.999'):
+
+        lon_indexer = xr.DataArray(df.lon.values, dims=('reshape_index', ))
+        lat_indexer = xr.DataArray(df.lat.values, dims=('reshape_index', ))
+
+        return ds.sel(lon=lon_indexer, lat=lat_indexer)
+
+    else:
+        res = ds.sel_points(
+            'reshape_index',
+            lat=df.lat.values,
+            lon=df.lon.values)
+
+        return res
 
 
 def _aggregate_reindexed_data_to_regions(
