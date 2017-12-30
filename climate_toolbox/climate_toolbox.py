@@ -6,27 +6,28 @@ import itertools
 import xarray as xr
 import numpy as np
 import pandas as pd
-<<<<<<< HEAD
 import geopandas as gpd
 import datafs
 import time
-=======
->>>>>>> master
-from scipy.ndimage import label
-from scipy.interpolate import griddata
-import geopandas as gpd
-from rasterstats import zonal_stats
-from six import string_types
-<<<<<<< HEAD
-from itertools import ifilterfalse
-
-=======
 import itertools
 import toolz
 import warnings
 
+from scipy.ndimage import label
+from scipy.interpolate import griddata
+from rasterstats import zonal_stats
+from six import string_types
 from distutils.version import LooseVersion
->>>>>>> master
+
+
+try: 
+    from itertools import ifilterfalse as filterfalse
+
+except ImportError:
+    from itertools import filterfalse
+
+
+
 
 WEIGHTS_FILE = (
     'GCP/spatial/world-combo-new/segment_weights/' +
@@ -482,7 +483,7 @@ def _gen_segments(grid_idx, grid_shp, feature):
     intersect_list = filter(feature_geom.intersects, near_grid_features.geometry)
 
     #get list of pixels that intersect partially
-    boundary_list = ifilterfalse(feature_geom.contains, intersect_list)
+    boundary_list = filterfalse(feature_geom.contains, intersect_list)
 
     #get list of pixels that are completely interior
     interior_list = filter(feature_geom.contains, intersect_list)
