@@ -6,7 +6,7 @@ climate_toolbox
 .. image:: https://img.shields.io/pypi/v/climate_toolbox.svg
         :target: https://pypi.python.org/pypi/climate_toolbox
 
-.. image:: https://img.shields.io/travis/ClimateImpactLab/climate_toolbox.svg
+.. image:: https://img.shields.io/travis/ClimateImpactLab/climate_toolbox/master.svg?logo=travis&style=popout
         :target: https://travis-ci.org/ClimateImpactLab/climate_toolbox
 
 .. image:: https://readthedocs.org/projects/climate-toolbox/badge/?version=latest
