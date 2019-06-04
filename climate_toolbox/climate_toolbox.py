@@ -298,7 +298,7 @@ def _prepare_spatial_weights_data(weights_file=None):
 
     # probably totally unnecessary
     df.drop_duplicates()
-    df.index.names = ['reshape_index']
+    df.index.names = ['_reshape_index']
 
     df.rename(
         columns={'pix_cent_x': 'lon', 'pix_cent_y': 'lat'},
@@ -323,14 +323,14 @@ def _reindex_spatial_data_to_regions(ds, df):
     # use vectorized indexing in xarray >= 0.10
     if LooseVersion(xr.__version__) > LooseVersion('0.9.999'):
 
-        lon_indexer = xr.DataArray(df.lon.values, dims=('reshape_index', ))
-        lat_indexer = xr.DataArray(df.lat.values, dims=('reshape_index', ))
+        lon_indexer = xr.DataArray(df.lon.values, dims=('_reshape_index', ))
+        lat_indexer = xr.DataArray(df.lat.values, dims=('_reshape_index', ))
 
         return ds.sel(lon=lon_indexer, lat=lat_indexer)
 
     else:
         res = ds.sel_points(
-            'reshape_index',
+            '_reshape_index',
             lat=df.lat.values,
             lon=df.lon.values)
 
@@ -372,12 +372,12 @@ def _aggregate_reindexed_data_to_regions(
 
     ds.coords[agglev] = xr.DataArray(
                 weights[agglev].values,
-                dims={'reshape_index': weights.index.values})
+                dims={'_reshape_index': weights.index.values})
 
     # format weights
     ds[aggwt] = xr.DataArray(
                 weights[aggwt].values,
-                dims={'reshape_index': weights.index.values})
+                dims={'_reshape_index': weights.index.values})
 
     ds[aggwt] = (
         ds[aggwt]
@@ -389,11 +389,11 @@ def _aggregate_reindexed_data_to_regions(
             (
                 (ds[variable]*ds[aggwt])
                 .groupby(agglev)
-                .sum(dim='reshape_index')) /
+                .sum(dim='_reshape_index')) /
             (
                 ds[aggwt]
                 .groupby(agglev)
-                .sum(dim='reshape_index')))})
+                .sum(dim='_reshape_index')))})
 
     return weighted
 

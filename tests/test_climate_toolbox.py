@@ -97,7 +97,7 @@ def weights(lat, lon):
         h: np.random.choice(np.arange(1, 5)) for h in df['hierid'].values}
 
     df['ISO'] = [mapping[i] for i in df['hierid']]
-    df.index.names = ['reshape_index']
+    df.index.names = ['_reshape_index']
 
     return df
 
@@ -109,7 +109,7 @@ def test_reindex_spatial_weights(clim_data, weights):
     ds = ctb._reindex_spatial_data_to_regions(clim_data, weights)
 
     assert ds.temperature.shape == (len(ds['lon']), len(ds['time']))
-    assert 'reshape_index' in ds.dims
+    assert '_reshape_index' in ds.dims
 
 
 def test_weighting(clim_data, weights):
