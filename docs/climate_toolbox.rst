@@ -1,6 +1,13 @@
 climate\_toolbox package
 ========================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    climate_toolbox.geo
+
 Submodules
 ----------
 
