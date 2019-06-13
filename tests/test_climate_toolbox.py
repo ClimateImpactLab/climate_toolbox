@@ -127,3 +127,81 @@ def test_weighting(clim_data, weights):
         ds, 'temperature', 'areawt', 'ISO', weights)
 
     assert not wtd.temperature.isnull().any()
+
+
+def test_rename_coords_to_lon_and_lat():
+    ds = xr.Dataset(
+        coords={'z': [1.20, 2.58], 'long': [156.6, 38.48]})
+    
+    ds = ctb._rename_coords_to_lon_and_lat(ds)
+    coords = ds.coords
+    
+    assert 'z' not in coords
+    assert coords.z is None 
+    assert 'lon' in coords and 'long' not in coords 
+
+
+def test_rename_coords_to_lon_and_lat():
+    ds = xr.Dataset(
+        coords={'latitude': [71.32, 72.58], 'longitude': [156.6, 38.48]})
+    
+    ds = ctb._rename_coords_to_lon_and_lat(ds)
+    coords = ds.coords
+    
+    assert 'lat' in coords and 'latitude' not in coords
+    assert 'lon' in coords and 'longitude' not in coords 
+    
+
+def test_rename_coords_to_longitude_and_latitude():
+    ds = xr.Dataset(
+        coords={'lat': [71.32, 72.58], 'lon': [156.6, 38.48]})
+    ds = ctb._rename_coords_to_longitude_and_latitude(ds)
+    coords = ds.coords
+    
+    assert 'latitude' in coords and 'lat' not in coords
+    assert 'longitude' in coords and 'lon' not in coords 
+
+
+def test_rename_coords_to_longitude_and_latitude_with_clim_data(clim_data):
+    ds = ctb._rename_coords_to_longitude_and_latitude(clim_data)
+    coords = ds.coords
+    
+    assert 'latitude' in coords and 'lat' not in coords
+    assert 'longitude' in coords and 'lon' not in coords 
+
+
+def test_convert_lons_mono():
+    ds = xr.Dataset(coords={'lon': [-156.6, -38.48]})
+    expected = np.array([203.4, 321.52])
+    
+    ds = ctb._convert_lons_mono(ds, lon_name='lon')
+    
+    np.testing.assert_array_equal(ds.lon.values, expected)
+
+    
+def test_convert_lons_split():
+    ds = xr.Dataset(coords={'longitude': [300, 320]})
+    expected = np.array([-60, -40])
+    
+    ds = ctb._convert_lons_split(ds)
+    
+    np.testing.assert_array_equal(ds.longitude.values, expected)
+    
+    
+def test_remove_leap_days():
+    da = xr.DataArray(np.random.rand(4, 3),
+                   [('time', pd.date_range('2000-02-27', periods=4)),
+                   ('space', ['IA', 'IL', 'IN'])])
+    leap_day = np.datetime64('2000-02-29')
+    
+    da = ctb.remove_leap_days(da)
+    
+    assert leap_day not in da.coords['time'].values
+    
+    
+def test_remove_leap_days_with_clim_data(clim_data):
+    leap_day = np.datetime64('2000-02-29')
+    
+    da = ctb.remove_leap_days(clim_data)
+    
+    assert leap_day not in da.coords['time'].values
