@@ -217,61 +217,6 @@ def iterative_fill_holes(da, lat_name='lat', lon_name='lon', method='linear'):
                 method=method)
 
 
-def _convert_lons_mono(ds, lon_name='longitude'):
-    '''Convert longitude from -180-180 to 0-360'''
-    ds[lon_name].values = np.where(
-        ds[lon_name].values < 0, 360 + ds[lon_name].values, ds[lon_name].values
-        )
-    # sort the dataset by the new lon values
-    ds = ds.sel(**{lon_name: np.sort(ds[lon_name].values)})
-
-    return ds
-
-
-def _convert_lons_split(ds, lon_name='longitude'):
-    ''' Convert longitude from 0-360 to -180-180 '''
-    ds[lon_name].values = xr.where(
-        ds[lon_name] > 180, ds[lon_name] - 360, ds[lon_name])
-    # sort the dataset by the new lon values
-    ds = ds.sel(**{lon_name: np.sort(ds[lon_name].values)})
-
-    return ds
-
-
-def _rename_coords_to_lon_and_lat(ds):
-    ''' Rename Dataset spatial coord names to:
-        lat, lon
-    '''
-    if 'latitude' in ds.coords:
-        ds = ds.rename({'latitude': 'lat'})
-    if 'longitude' in ds.coords:
-        ds = ds.rename({'longitude': 'lon'})
-    elif 'long' in ds.coords:
-        ds = ds.rename({'long': 'lon'})
-
-    if 'z' in ds.coords:
-        ds = ds.drop('z').squeeze()
-
-    return ds
-
-
-def _rename_coords_to_longitude_and_latitude(ds):
-    ''' Rename Dataset spatial coord names to:
-        latitude, longitude
-    '''
-    if 'lat' in ds.coords:
-        ds = ds.rename({'lat': 'latitude'})
-    if 'lon' in ds.coords:
-        ds = ds.rename({'lon': 'longitude'})
-    elif 'long' in ds.coords:
-        ds = ds.rename({'long': 'longitude'})
-
-    if 'z' in ds.coords:
-        ds = ds.drop('z').squeeze()
-
-    return ds
-
-
 def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
     '''
     Rescales the lat and lon coordinates to ensure lat is within (-90,90)
@@ -460,49 +405,6 @@ Public Functions
 '''
 
 
-def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
-    '''
-    Read and prepare climate data
-
-    After reading data, this method also fills NA values using linear
-    interpolation, and standardizes longitude to -180:180
-
-    Parameters
-    ----------
-    fp: str
-        File path or dataset
-
-    varname: str
-        Variable name to be read
-
-    lon_name : str, optional
-        Name of the longitude dimension (defualt selects from ['lon' or
-        'longitude'])
-
-    Returns
-    -------
-    xr.Dataset
-         xarray dataset loaded into memory
-    '''
-
-    if lon_name is not None:
-        lon_names = [lon_name]
-
-    if hasattr(fp, 'sel_points'):
-        ds = fp
-
-    else:
-        with xr.open_dataset(fp) as ds:
-            ds.load()
-
-    _fill_holes_xr(ds, varname, broadcast_dims=broadcast_dims)
-    return _standardize_longitude_dimension(ds, lon_names=lon_names)
-
-
-def load_gmfd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
-    pass
-
-
 def load_baseline(fp, varname, lon_name='lon', broadcast_dims=None):
     '''
     Read and prepare climate data
@@ -551,13 +453,6 @@ def load_baseline(fp, varname, lon_name='lon', broadcast_dims=None):
 
     _fill_holes_xr(ds, varname, broadcast_dims=broadcast_dims)
     return _standardize_longitude_dimension(ds, lon_names=lon_names)
-
-
-def remove_leap_days(ds):
-    ds = ds.loc[{
-        'time': ~((ds['time.month'] == 2) & (ds['time.day'] == 29))}]
-
-    return ds
 
 
 def weighted_aggregate_grid_to_regions(
