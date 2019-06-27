@@ -7,6 +7,7 @@ import pytest
 
 from climate_toolbox import climate_toolbox as ctb
 from climate_toolbox.utils.utils import *
+from climate_toolbox.aggregations.aggregations import _reindex_spatial_data_to_regions, _aggregate_reindexed_data_to_regions
 
 import numpy as np
 import pandas as pd
@@ -107,7 +108,7 @@ def test_reindex_spatial_weights(clim_data, weights):
 
     assert not clim_data.temperature.isnull().any()
 
-    ds = ctb._reindex_spatial_data_to_regions(clim_data, weights)
+    ds = _reindex_spatial_data_to_regions(clim_data, weights)
 
     assert ds.temperature.shape == (len(ds['lon']), len(ds['time']))
     assert 'reshape_index' in ds.dims
@@ -116,15 +117,15 @@ def test_reindex_spatial_weights(clim_data, weights):
 def test_weighting(clim_data, weights):
 
     assert np.isnan(weights['popwt'].values).any()
-    ds = ctb._reindex_spatial_data_to_regions(clim_data, weights)
+    ds = _reindex_spatial_data_to_regions(clim_data, weights)
     assert not ds.temperature.isnull().any()
 
-    wtd = ctb._aggregate_reindexed_data_to_regions(
+    wtd = _aggregate_reindexed_data_to_regions(
         ds, 'temperature', 'popwt', 'ISO', weights)
 
     assert not wtd.temperature.isnull().any()
 
-    wtd = ctb._aggregate_reindexed_data_to_regions(
+    wtd = _aggregate_reindexed_data_to_regions(
         ds, 'temperature', 'areawt', 'ISO', weights)
 
     assert not wtd.temperature.isnull().any()
