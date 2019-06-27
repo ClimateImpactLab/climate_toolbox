@@ -41,3 +41,7 @@ def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
 
 def load_gmfd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
     pass
+
+
+def load_best(fp, varname, lon_name='lon', broadcast_dims=('time',)):
+    pass
