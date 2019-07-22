@@ -70,6 +70,13 @@ Ready to contribute? Here's how to set up `climate_toolbox` for local developmen
     $ cd climate_toolbox/
     $ python setup.py develop
 
+   If you are using Conda run the following::
+
+    $ conda create -n climate_toolbox python=3.5
+    $ conda activate climate_toolbox
+    $ pip install -r requirements.txt
+    $ python setup.py test 
+
 4. Create a branch for local development::
 
     $ git checkout -b name-of-your-bugfix-or-feature
