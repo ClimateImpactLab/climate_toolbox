@@ -7,17 +7,13 @@ Subpackages
 .. toctree::
 
     climate_toolbox.geo
+    climate_toolbox.aggregations
+    climate_toolbox.io
+    climate_toolbox.utils
+    climate_toolbox.transformations
 
 Submodules
 ----------
-
-climate\_toolbox.cli module
----------------------------
-
-.. automodule:: climate_toolbox.cli
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 climate\_toolbox.climate\_toolbox module
 ----------------------------------------

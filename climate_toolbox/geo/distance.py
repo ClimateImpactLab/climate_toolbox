@@ -11,8 +11,9 @@ ELLIPSOIDS = {'WGS-84':        (6378.137,    6356.7523142,  1 / 298.257223563),
 
 EARTH_RADIUS = 6371.009
 
+
 def great_circle(ax, ay, bx, by, radius=EARTH_RADIUS):
-    '''
+    """
     calculate the great circle distance (km) between points
 
     Provide points (ax, ay) and (bx, by) as floats, or as
@@ -45,7 +46,7 @@ def great_circle(ax, ay, bx, by, radius=EARTH_RADIUS):
     distance : float or array
         great circle distance between points a and b. Units will
         match the radius provided (default km)
-    '''
+    """
 
     lat1, lng1 = np.radians(ay), np.radians(ax)
     lat2, lng2 = np.radians(by), np.radians(bx)

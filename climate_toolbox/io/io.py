@@ -11,11 +11,13 @@ def standardize_climate_data(ds, temp_name=None):
         - lon and lat,
         - lon to -180 to 180 and
         - temperature from K to C
+
     Parameters
     ----------
     ds:  xr.Dataset
     temp_name:  str, optional
                 name of temperature (tas, tmax,...)
+
     Returns
     -------
     xr.Dataset
