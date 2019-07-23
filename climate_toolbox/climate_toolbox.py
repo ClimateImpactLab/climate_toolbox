@@ -1,6 +1,6 @@
-'''
+"""
 This file describes the process for computing weighted climate data
-'''
+"""
 
 import xarray as xr
 import numpy as np
@@ -37,7 +37,7 @@ def _fill_holes_xr(
         minlat=-85,
         maxlat=85,
         method='linear'):
-    '''
+    """
     Fill NA values inplace in a gridded dataset
 
     Parameters
@@ -71,7 +71,7 @@ def _fill_holes_xr(
 
     method :
 
-    '''
+    """
     if isinstance(broadcast_dims, string_types):
         broadcast_dims = (broadcast_dims, )
 
@@ -105,7 +105,7 @@ def _fill_holes_xr(
 
 
 def iterative_fill_holes(da, lat_name='lat', lon_name='lon', method='linear'):
-    '''
+    """
     Interpolates missing data within a progressively widening bounding box
 
 
@@ -122,7 +122,7 @@ def iterative_fill_holes(da, lat_name='lat', lon_name='lon', method='linear'):
 
     Returns
         DataArray
-    '''
+    """
 
     attempts = 0
     max_attempts = 10
@@ -218,7 +218,7 @@ def iterative_fill_holes(da, lat_name='lat', lon_name='lon', method='linear'):
 
 
 def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
-    '''
+    """
     Rescales the lat and lon coordinates to ensure lat is within (-90,90)
     and lon is within (-180, 180). Renames coordinates
     from lon to longitude and from lat to latitude. Sorts any new
@@ -235,7 +235,7 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
     .. note:: this will be unnecessary if we standardize inputs. We can
     scale the longitude dim to between (-180, 180)
 
-    '''
+    """
 
     dims = np.array(ds.dims)
 
@@ -266,7 +266,7 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
 
 @toolz.memoize
 def _prepare_spatial_weights_data(weights_file=None):
-    '''
+    """
     Rescales the pix_cent_x colum values
 
     Requires the :py:mod:`datafs` package.
@@ -278,7 +278,7 @@ def _prepare_spatial_weights_data(weights_file=None):
 
 
     .. note:: unnecessary if we can standardize our input
-    '''
+    """
 
     import datafs
 

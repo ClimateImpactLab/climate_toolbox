@@ -3,8 +3,9 @@ import numpy as np
 
 from climate_toolbox.utils.utils import remove_leap_days
 
+
 def edd_ag(ds_tasmax, ds_tasmin, threshold):
-    '''
+    """
     Note: there are implicitly three cases:
 
         1. tmax > threshold & tmin < threshold
@@ -30,13 +31,13 @@ def edd_ag(ds_tasmax, ds_tasmin, threshold):
     -------
     ds : Dataset
         xarray.Dataset with dimensions ``(hierid, threshold)``
-    '''
+    """
 
     # convert from K to C
     tmax = (ds_tasmax.tasmax - 273.15)
     tmin = (ds_tasmin.tasmin - 273.15)
 
-    #get the 
+    # get the
     snyder_m = (tmax + tmin)/2
     snyder_w = (tmax - tmin)/2
     snyder_theta = np.arcsin( (threshold - snyder_m)/snyder_w )
@@ -49,17 +50,16 @@ def edd_ag(ds_tasmax, ds_tasmin, threshold):
                          snyder_w.values * np.cos(snyder_theta.values) ) / np.pi, 0),
         snyder_m.values - threshold)
 
-    
     return xr.DataArray(transdata, dims=tmax.dims, coords=tmax.coords)
 
 
 def tas_poly(ds, power):
-    '''
+    """
     Daily average temperature (degrees C), raised to a power
 
     Leap years are removed before counting days (uses a 365 day
     calendar).
-    '''
+    """
 
     powername = ordinal(power)
 

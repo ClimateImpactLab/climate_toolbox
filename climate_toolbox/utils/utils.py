@@ -1,13 +1,13 @@
-'''
+"""
 Handy functions for standardizing the format of climate data
-'''
+"""
 
 import xarray as xr
 import numpy as np
 
 
 def convert_lons_mono(ds, lon_name='longitude'):
-    ''' Convert longitude from -180-180 to 0-360 '''
+    """ Convert longitude from -180-180 to 0-360 """
     ds[lon_name].values = np.where(
         ds[lon_name].values < 0, 360 + ds[lon_name].values, ds[lon_name].values
         )
@@ -19,7 +19,7 @@ def convert_lons_mono(ds, lon_name='longitude'):
 
 
 def convert_lons_split(ds, lon_name='longitude'):
-    ''' Convert longitude from 0-360 to -180-180 '''
+    """ Convert longitude from 0-360 to -180-180 """
     ds[lon_name].values = xr.where(
         ds[lon_name] > 180, ds[lon_name] - 360, ds[lon_name])
 
@@ -30,9 +30,9 @@ def convert_lons_split(ds, lon_name='longitude'):
 
 
 def rename_coords_to_lon_and_lat(ds):
-    ''' Rename Dataset spatial coord names to:
+    """ Rename Dataset spatial coord names to:
         lat, lon
-    '''
+    """
     if 'latitude' in ds.coords:
         ds = ds.rename({'latitude': 'lat'})
     if 'longitude' in ds.coords:
@@ -47,9 +47,9 @@ def rename_coords_to_lon_and_lat(ds):
 
 
 def rename_coords_to_longitude_and_latitude(ds):
-    ''' Rename Dataset spatial coord names to:
+    """ Rename Dataset spatial coord names to:
         latitude, longitude
-    '''
+    """
     if 'lat' in ds.coords:
         ds = ds.rename({'lat': 'latitude'})
     if 'lon' in ds.coords:
@@ -71,8 +71,8 @@ def remove_leap_days(ds):
 
 
 def season_boundaries(growing_days):
-    ''' Returns the sorted start and end date of growing season
-    '''
+    """ Returns the sorted start and end date of growing season
+    """
 
     # the longitude values of the data is off, we need to scale it
     growing_days.longitude.values = growing_days.longitude.values - 180
@@ -102,7 +102,7 @@ def season_boundaries(growing_days):
 
 
 def get_daily_growing_season_mask(lat, lon, time, growing_days_path):
-    '''
+    """
 
     Constructs a mask for days in the within calendar growing season
 
@@ -118,7 +118,7 @@ def get_daily_growing_season_mask(lat, lon, time, growing_days_path):
     DataArray
         xr.DataArray of masked lat x lon x time
 
-    '''
+    """
 
     growing_days = xr.open_dataset(growing_days_path)
 
@@ -149,7 +149,7 @@ def get_daily_growing_season_mask(lat, lon, time, growing_days_path):
 
 
 def edd_ag(ds_tasmax, ds_tasmin, threshold):
-    '''
+    """
 
     Note: there are implicitly three cases:
 
@@ -176,7 +176,7 @@ def edd_ag(ds_tasmax, ds_tasmin, threshold):
     -------
     ds : Dataset
         xarray.Dataset with dimensions ``(hierid, threshold)``
-    '''
+    """
 
     # convert from K to C
     tmax = (ds_tasmax.tasmax - 273.15)

@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 
 
 def _reindex_spatial_data_to_regions(ds, df):
-    '''
+    """
     Reindexes spatial and segment weight data to regions
     Enables region index-based math operations
     Parameters
@@ -16,7 +16,7 @@ def _reindex_spatial_data_to_regions(ds, df):
     Returns
     -------
     Xarray DataArray
-    '''
+    """
 
     # use vectorized indexing in xarray >= 0.10
     if LooseVersion(xr.__version__) > LooseVersion('0.9.999'):
@@ -42,7 +42,7 @@ def _aggregate_reindexed_data_to_regions(
         agglev,
         weights,
         backup_aggwt='areawt'):
-    '''
+    """
     Performs weighted avg for climate variable by region
 
     Parameters
@@ -59,14 +59,14 @@ def _aggregate_reindexed_data_to_regions(
     agglev: str
         indicates which regional id scheme to select in the dataframe
 
-    weight: pd.DataFrame
+    weights: pd.DataFrame
         pandas DataFrame of weights
 
     backup_aggwt: str, optional
         aggregation weight to use in regions with no aggwt data (default
         'areawt')
 
-    '''
+    """
 
     ds.coords[agglev] = xr.DataArray(
                 weights[agglev].values,
@@ -102,7 +102,7 @@ def weighted_aggregate_grid_to_regions(
         aggwt,
         agglev,
         weights=None):
-    '''
+    """
     Computes the weighted reshape of gridded data
 
     Parameters
@@ -130,7 +130,7 @@ def weighted_aggregate_grid_to_regions(
     -------
     ds: xr.Dataset
         weighted and averaged dataset based on agglev
-    '''
+    """
 
     if weights is None:
         weights = _prepare_spatial_weights_data()

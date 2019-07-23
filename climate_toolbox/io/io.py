@@ -1,7 +1,9 @@
 import xarray as xr
+from climate_toolbox.climate_toolbox import _fill_holes_xr, _standardize_longitude_dimension
+
 
 def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
-    '''
+    """
     Read and prepare climate data
 
     After reading data, this method also fills NA values using linear
@@ -23,7 +25,7 @@ def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
     -------
     xr.Dataset
          xarray dataset loaded into memory
-    '''
+    """
 
     if lon_name is not None:
         lon_names = [lon_name]
