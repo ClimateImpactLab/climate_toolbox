@@ -7,7 +7,9 @@ import pytest
 
 from climate_toolbox import climate_toolbox as ctb
 from climate_toolbox.utils.utils import *
-from climate_toolbox.aggregations.aggregations import _reindex_spatial_data_to_regions, _aggregate_reindexed_data_to_regions
+from climate_toolbox.aggregations.aggregations import \
+    _reindex_spatial_data_to_regions, _aggregate_reindexed_data_to_regions
+from climate_toolbox.io import *
 
 import numpy as np
 import pandas as pd
@@ -38,9 +40,9 @@ def time():
 
 @pytest.fixture
 def clim_data(lat, lon, time):
-    '''
+    """
     Generate fake climate data to do tests on
-    '''
+    """
     np.random.seed(42)
     temp = np.random.rand(len(lat), len(lon), len(time))*100
 
@@ -208,3 +210,20 @@ def test_remove_leap_days_with_clim_data(clim_data):
     da = remove_leap_days(clim_data)
 
     assert leap_day not in da.coords['time'].values
+
+
+def test_convert_kelvin_to_celsius(clim_data):
+    ds = convert_kelvin_to_celsius(clim_data, 'temperature')
+
+    assert 'C' in ds.data_vars['temperature'].units
+
+
+def test_standardize_climate_data(clim_data):
+    clim_data['temperature'].attrs['units'] = 'K'
+    ds = standardize_climate_data(clim_data, 'temperature')
+
+    coordinates = ds.coords
+
+    assert 'lat' in coordinates and 'latitude' not in coordinates
+    assert 'lon' in coordinates and 'longitude' not in coordinates
+    assert 'C' in ds.data_vars['temperature'].units

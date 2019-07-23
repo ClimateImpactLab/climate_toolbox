@@ -40,7 +40,7 @@ def edd_ag(ds_tasmax, ds_tasmin, threshold):
     # get the
     snyder_m = (tmax + tmin)/2
     snyder_w = (tmax - tmin)/2
-    snyder_theta = np.arcsin( (threshold - snyder_m)/snyder_w )
+    snyder_theta = np.arcsin((threshold - snyder_m)/snyder_w)
 
     transdata = np.where(
         tmin.values < threshold,

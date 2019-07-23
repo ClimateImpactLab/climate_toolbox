@@ -6,6 +6,15 @@ import xarray as xr
 import numpy as np
 
 
+def convert_kelvin_to_celsius(df, temp_name):
+    """ Convert Kelvin to Celsius """
+    df[temp_name] = df[temp_name] - 273.15
+
+    # update unit information
+    df[temp_name].attrs['units'] = 'C'
+    return df
+
+
 def convert_lons_mono(ds, lon_name='longitude'):
     """ Convert longitude from -180-180 to 0-360 """
     ds[lon_name].values = np.where(
@@ -146,50 +155,3 @@ def get_daily_growing_season_mask(lat, lon, time, growing_days_path):
             )
 
     return finalmask
-
-
-def edd_ag(ds_tasmax, ds_tasmin, threshold):
-    """
-
-    Note: there are implicitly three cases:
-
-        1. tmax > threshold & tmin < threshold
-        2. tmax > threshold & tmin > threshold
-        3. tmax <= threshold
-
-    Case (1) is the first part of the np.where() statement.
-    Case (2) is also the first part of this statement, which returns 'NA' in
-    this case and so is not included in the final summation of HDD. (I.e., in
-    case (2), the HDD should be zero. Instead we get 'NA', which functions as
-    the equivalent of a zero value in the subsequent code.)
-    Case (3) is, of course, the second part of the np.where() statement.
-
-    Parameters
-    ----------
-    ds : Dataset
-        xarray.Dataset with two variables: tasmin and tasmax.
-        tasmin and tasmax are in Kelvin and are indexed by
-        impact region (``hierid``) and day (``time``) in a
-        365-day calendar.
-
-    Returns
-    -------
-    ds : Dataset
-        xarray.Dataset with dimensions ``(hierid, threshold)``
-    """
-
-    # convert from K to C
-    tmax = (ds_tasmax.tasmax - 273.15)
-    tmin = (ds_tasmin.tasmin - 273.15)
-
-    snyder_m = (tmax + tmin)/2
-    snyder_w = (tmax - tmin)/2
-    snyder_theta = np.arcsin((threshold - snyder_m)/snyder_w)
-
-    transdata = np.where(
-        tmin.values < threshold, np.where(tmax.values > threshold, (
-            (snyder_m.values - threshold) * (np.pi/2 - snyder_theta.values) +
-            snyder_w.values * np.cos(snyder_theta.values)
-            ) / np.pi, 0), snyder_m.values - threshold)
-
-    return xr.DataArray(transdata, dims=tmax.dims, coords=tmax.coords)

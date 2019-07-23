@@ -1,5 +1,36 @@
 import xarray as xr
-from climate_toolbox.climate_toolbox import _fill_holes_xr, _standardize_longitude_dimension
+from climate_toolbox.climate_toolbox import \
+    _fill_holes_xr, _standardize_longitude_dimension
+
+from climate_toolbox.utils.utils import *
+
+
+def standardize_climate_data(ds, temp_name=None):
+    """
+    Read climate data and standardize units to:
+        - lon and lat,
+        - lon to -180 to 180 and
+        - temperature from K to C
+    Parameters
+    ----------
+    ds:  xr.Dataset
+    temp_name:  str, optional
+                name of temperature (tas, tmax,...)
+    Returns
+    -------
+    xr.Dataset
+    """
+
+    ds = rename_coords_to_lon_and_lat(ds)
+    ds = convert_lons_split(ds, lon_name='lon')
+
+    if temp_name is None:
+        temp_name = ds.data_vars.keys()[0]
+
+    if 'K' in ds.data_vars[temp_name].units:
+        ds = convert_kelvin_to_celsius(ds, temp_name)
+
+    return ds
 
 
 def load_bcsd(fp, varname, lon_name='lon', broadcast_dims=('time',)):
