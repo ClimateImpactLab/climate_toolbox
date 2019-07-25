@@ -8,10 +8,14 @@ import numpy as np
 
 def convert_kelvin_to_celsius(df, temp_name):
     """ Convert Kelvin to Celsius """
+    df_attrs = df[temp_name].attrs
     df[temp_name] = df[temp_name] - 273.15
-
-    # update unit information
+    # update attrs & unit information
+    df[temp_name].attrs.update(df_attrs)
     df[temp_name].attrs['units'] = 'C'
+    df[temp_name].attrs['valid_min'] = -108.78788
+    df[temp_name].attrs['valid_max'] = 62.02828
+
     return df
 
 

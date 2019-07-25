@@ -4,7 +4,7 @@ import numpy as np
 from climate_toolbox.utils.utils import remove_leap_days
 
 
-def edd_ag(ds_tasmax, ds_tasmin, threshold):
+def edd_snyder_agriculture(ds_tasmax, ds_tasmin, threshold):
     """
     Note: there are implicitly three cases:
 

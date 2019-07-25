@@ -9,7 +9,6 @@ from scipy.ndimage import label
 from scipy.interpolate import griddata
 from six import string_types
 import itertools
-import toolz
 import warnings
 
 from distutils.version import LooseVersion
@@ -262,46 +261,3 @@ def _standardize_longitude_dimension(ds, lon_names=['lon', 'longitude']):
     ds = ds.rename({'_longitude_adjusted': _lon_coord})
 
     return ds
-
-
-@toolz.memoize
-def _prepare_spatial_weights_data(weights_file=None):
-    """
-    Rescales the pix_cent_x colum values
-
-    Requires the :py:mod:`datafs` package.
-
-    Parameters
-    ----------
-    weights_file: str
-        location of file used for weighting
-
-
-    .. note:: unnecessary if we can standardize our input
-    """
-
-    import datafs
-
-    if weights_file is None:
-        weights_file = WEIGHTS_FILE
-
-        api = datafs.get_api()
-        archive = api.get_archive(weights_file)
-
-        with archive.open('r') as f:
-            df = pd.read_csv(f)
-    else:
-        df = pd.read_csv(weights_file)
-
-    # Re-label out-of-bounds pixel centers
-    df.set_value((df['pix_cent_x'] == 180.125), 'pix_cent_x', -179.875)
-
-    # probably totally unnecessary
-    df.drop_duplicates()
-    df.index.names = ['reshape_index']
-
-    df.rename(
-        columns={'pix_cent_x': 'lon', 'pix_cent_y': 'lat'},
-        inplace=True)
-
-    return df
