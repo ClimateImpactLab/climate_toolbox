@@ -5,7 +5,6 @@
 
 import pytest
 
-from climate_toolbox import climate_toolbox as ctb
 from climate_toolbox.utils.utils import *
 from climate_toolbox.aggregations.aggregations import \
     _reindex_spatial_data_to_regions, _aggregate_reindexed_data_to_regions
@@ -71,15 +70,6 @@ def make_holes(clim_data, lat):
     clim_data['temperature'].values = tmp
 
     return clim_data
-
-
-# create pytest resource to be used acress tessts
-def test_fill_holes(make_holes):
-
-    assert make_holes.temperature.isnull().any()
-    ctb._fill_holes_xr(make_holes, 'temperature', minlat=-90, maxlat=90)
-
-    assert not make_holes.temperature.isnull().any()
 
 
 @pytest.fixture
