@@ -43,17 +43,25 @@ def edd_snyder_agriculture(ds_tasmax, ds_tasmin, threshold):
     snyder_theta = np.arcsin((threshold - snyder_m)/snyder_w)
 
     transdata = np.where(
-        tmin.values < threshold,
-            np.where(
-                tmax.values > threshold,
-            ((snyder_m.values - threshold) * (np.pi/2 - snyder_theta.values) +
-                         snyder_w.values * np.cos(snyder_theta.values) ) / np.pi, 0),
-        snyder_m.values - threshold)
+        tmin.values < threshold, np.where(tmax.values > threshold, (
+            (snyder_m.values - threshold) * (np.pi/2 - snyder_theta.values) +
+            snyder_w.values * np.cos(snyder_theta.values)
+        ) / np.pi, 0), snyder_m.values - threshold)
 
     return xr.DataArray(transdata, dims=tmax.dims, coords=tmax.coords)
 
 
-def tas_poly(ds, power):
+def validate_edd_snyder_agriculture(ds, thresholds):
+    msg_null = 'hierid dims do not match 24378'
+
+    assert ds.hierid.shape == (24378,), msg_null
+
+    for threshold in thresholds:
+        assert threshold in list(ds.refTemp)
+    return
+
+
+def tas_poly(ds, power, varname):
     """
     Daily average temperature (degrees C), raised to a power
 
