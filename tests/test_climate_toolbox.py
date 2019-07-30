@@ -209,11 +209,9 @@ def test_convert_kelvin_to_celsius(clim_data):
 
 
 def test_standardize_climate_data(clim_data):
-    clim_data['temperature'].attrs['units'] = 'K'
-    ds = standardize_climate_data(clim_data, 'temperature')
+    ds = standardize_climate_data(clim_data)
 
     coordinates = ds.coords
 
     assert 'lat' in coordinates and 'latitude' not in coordinates
     assert 'lon' in coordinates and 'longitude' not in coordinates
-    assert 'C' in ds.data_vars['temperature'].units

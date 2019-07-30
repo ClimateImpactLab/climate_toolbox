@@ -1,54 +1,146 @@
 import xarray as xr
 import numpy as np
 
-from climate_toolbox.utils.utils import remove_leap_days
+from climate_toolbox.utils.utils import \
+    remove_leap_days, convert_kelvin_to_celsius
 
 
-def edd_snyder_agriculture(ds_tasmax, ds_tasmin, threshold):
-    """
-    Note: there are implicitly three cases:
+def snyder_edd(tasmin, tasmax, threshold):
+    r"""
+    Snyder exceedance degree days/cooling degree days
 
-        1. tmax > threshold & tmin < threshold
-        2. tmax > threshold & tmin > threshold
-        3. tmax <= threshold
-    
-    Case (1) is the first part of the np.where() statement.
-    Case (2) is also the first part of this statement, which returns 'NA' in
-    this case and so is not included in the final summation of HDD. (I.e., in
-    case (2), the HDD should be zero. Instead we get 'NA', which functions as
-    the equivalent of a zero value in the subsequent code.)
-    Case (3) is, of course, the second part of the np.where() statement.
-    
+    Similarly to Snyder HDDs, Snyder exceedance degree days for any given day
+    are given by the integral between the sinosiod-interpolated temperature and
+    the threshold.
+
+    The closed form solution is given by:
+
+    .. math::
+
+        EDD_{P} = \sum_{d \in P} EDD_d
+
+    where
+
+    .. math::
+
+        EED_d =
+            \begin{cases}
+                ( (M - e)(\pi /2 - \theta) + w \cos(\theta) ) / \pi, & \text{if } tmin_d < e < tmax_d \\
+                0 , & \text{if } tmax_d < e \\
+                M - e, & \text{otherwise}
+            \end{cases}
+
+    and
+
+    .. math::
+
+        \begin{array}{rll}
+            M & = & (tmax_d + tmin_d)/2 \\
+            w & = & (tmax_d-tmin_d)/2 \\
+            \theta & = & \arcsin( (e-M)/w ) \\
+        \end{array}
+
     Parameters
     ----------
-    ds : Dataset
-        xarray.Dataset with two variables: tasmin and tasmax. 
-        tasmin and tasmax are in Kelvin and are indexed by
-        impact region (``hierid``) and day (``time``) in a
-        365-day calendar.
-        
+
+    tasmin : xarray.DataArray
+        Daily minimum temperature (degrees C)
+
+    tasmax : xarray.DataArray
+        Daily maximum temperature (degrees C)
+
+    threshold : int, float, xarray.DataArray
+        Threshold (degrees C)
+
     Returns
     -------
-    ds : Dataset
-        xarray.Dataset with dimensions ``(hierid, threshold)``
+
+    edd : xarray.DataArray
+        Snyder exceedance degree days (degreedays)
+
     """
 
-    # convert from K to C
-    tmax = (ds_tasmax.tasmax - 273.15)
-    tmin = (ds_tasmin.tasmin - 273.15)
+    # Check for unit agreement
+    assert tasmin.units == tasmax.units
 
-    # get the
-    snyder_m = (tmax + tmin)/2
-    snyder_w = (tmax - tmin)/2
-    snyder_theta = np.arcsin((threshold - snyder_m)/snyder_w)
+    # check to make sure tasmax > tasmin everywhere
+    assert not (tasmax < tasmin).any(), "values encountered where tasmin > tasmax"
 
-    transdata = np.where(
-        tmin.values < threshold, np.where(tmax.values > threshold, (
-            (snyder_m.values - threshold) * (np.pi/2 - snyder_theta.values) +
-            snyder_w.values * np.cos(snyder_theta.values)
-        ) / np.pi, 0), snyder_m.values - threshold)
+    # compute useful quantities for use in the transformation
+    snyder_mean = ((tasmax + tasmin)/2)
+    snyder_width = ((tasmax - tasmin)/2)
+    snyder_theta = xr.ufuncs.arcsin((threshold - snyder_mean)/snyder_width)
 
-    return xr.DataArray(transdata, dims=tmax.dims, coords=tmax.coords)
+    # the trasnformation is computed using numpy arrays, taking advantage of
+    # numpy's second where clause. Note that in the current dev build of
+    # xarray, xr.where allows this functionality. As soon as this goes live,
+    # this block can be replaced with xarray
+    res = xr.where(
+        tasmin < threshold,
+        xr.where(
+            tasmax > threshold,
+            ((snyder_mean - threshold) * (np.pi/2 - snyder_theta)
+                + (snyder_width * np.cos(snyder_theta))) / np.pi,
+            0),
+        snyder_mean - threshold)
+
+    res.attrs['units'] = (
+        'degreedays_{}{}'.format(threshold, tasmax.attrs['units']))
+
+    return res
+
+
+def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high):
+    r"""
+    Snyder growing degree days
+
+    Growing degree days are the difference between EDD measures at two
+    thresholds.
+
+    .. math::
+
+        {GDD}_{T_{low}, T_{high}, y, i} = {EDD}_{T_{low}, y, i} - {EDD}_{T_{high}, y, i}
+
+    Note that where :math:`tas_{d,i}>{T_{high}}`, GDD will be a constant value
+    :math:`T_{high}-T_{low}`. Thus, this measure is only useful when another
+    measure, e.g. :math:`{EDD}_{T_{high}}`, sometimes referred to as
+    *killing degree days*, is used as an additional predictor.
+
+
+    Parameters
+    ----------
+
+    tasmin : xarray.DataArray
+        Daily minimum temperature (degrees C)
+
+    tasmax : xarray.DataArray
+        Daily maximum temperature (degrees C)
+
+    threshold_low : int, float, xarray.DataArray
+        Lower threshold (degrees C)
+
+    threshold_high : int, float, xarray.DataArray
+        Upper threshold (degrees C)
+
+    Returns
+    -------
+
+    gdd : xarray.DataArray
+        Snyder growing degree days (degreedays)
+
+    """
+
+    # Check for unit agreement
+    assert tasmin.units == tasmax.units
+
+    res = (
+        snyder_edd(tasmin, tasmax, threshold_low)
+        - snyder_edd(tasmin, tasmax, threshold_high))
+
+    res.attrs['units'] = (
+        'degreedays_{}{}'.format(threshold, tasmax.attrs['units']))
+
+    return res
 
 
 def validate_edd_snyder_agriculture(ds, thresholds):
@@ -108,3 +200,11 @@ def tas_poly(ds, power, varname):
     ds1[varname].attrs['variable'] = varname
 
     return ds1
+
+
+def ordinal(n):
+    """ Converts numbers into ordinal strings """
+
+    return (
+        "%d%s" %
+        (n, "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10::4]))

@@ -1,4 +1,4 @@
-
+import numpy as np
 #             model             major (km)   minor (km)     flattening
 ELLIPSOIDS = {'WGS-84':        (6378.137,    6356.7523142,  1 / 298.257223563),
               'GRS-80':        (6378.137,    6356.7523141,  1 / 298.257222101),
