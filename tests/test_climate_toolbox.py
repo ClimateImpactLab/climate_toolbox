@@ -8,6 +8,7 @@ import pytest
 from climate_toolbox.utils.utils import *
 from climate_toolbox.aggregations.aggregations import \
     _reindex_spatial_data_to_regions, _aggregate_reindexed_data_to_regions
+from climate_toolbox.transformations.transformations import snyder_edd, snyder_gdd
 from climate_toolbox.io import *
 
 import numpy as np
@@ -215,3 +216,45 @@ def test_standardize_climate_data(clim_data):
 
     assert 'lat' in coordinates and 'latitude' not in coordinates
     assert 'lon' in coordinates and 'longitude' not in coordinates
+    
+    
+def test_snyder_edd():
+    ds_tasmax = xr.Dataset(
+        data_vars={'tmax': (
+            '(latitude, longitude)', [280.4963, 280.7887], {'units': 'K'})},
+        coords={'latitude': [-33.625, -33.375], 'longitude': [286.125, 286.375]})
+
+    ds_tasmin = xr.Dataset(
+        data_vars={'tmin': (
+            '(latitude, longitude)', [278.902, 278.23163], {'units': 'K'})},
+        coords={'latitude': [-33.625, -33.375], 'longitude': [286.125, 286.375]})
+
+    threshold = 8
+
+    res = snyder_edd(
+                ds_tasmin.tmin,
+                ds_tasmax.tmax,
+                threshold=273.15 + threshold)
+    
+    assert res.units == 'degreedays_281.15K'
+    assert res.sum().item(0) == 0.0
+
+    
+def test_snyder_gdd():
+    ds_tasmax = xr.Dataset(
+        data_vars={'tmax': ('(latitude, longitude)', [280.4963, 280.7887], {'units': 'K'})},
+        coords={'latitude': [-33.625, -33.375], 'longitude': [286.125, 286.375]})
+
+    ds_tasmin = xr.Dataset(
+        data_vars={'tmin': ('(latitude, longitude)', [278.902, 278.23163], {'units': 'K'})},
+        coords={'latitude': [-33.625, -33.375], 'longitude': [286.125, 286.375]})
+    
+    res = snyder_gdd(
+            ds_tasmin.tmin,
+            ds_tasmax.tmax,
+            threshold_low=273.15 + 1,
+            threshold_high=273.15 + 8)
+    
+    assert not res.units == 'degreedays_281.15K'
+    assert res.units == 'degreedays_274.15-281.15K'
+    assert res.sum().item(0) == pytest.approx(11, 0.1)

@@ -138,7 +138,8 @@ def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high):
         - snyder_edd(tasmin, tasmax, threshold_high))
 
     res.attrs['units'] = (
-        'degreedays_{}{}'.format(threshold, tasmax.attrs['units']))
+        'degreedays_{}-{}{}'.format(threshold_low, threshold_high, tasmax.attrs['units']))
+
 
     return res
 

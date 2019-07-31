@@ -55,7 +55,8 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
     'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx']
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax']
 
 extlinks = {
     'issue': ('https://github.com/ClimateImpactLab/climate_toolbox/issues/%s', 'GH #'),
