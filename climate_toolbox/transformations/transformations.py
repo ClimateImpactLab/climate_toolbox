@@ -164,7 +164,7 @@ def tas_poly(ds, power, varname):
 
     powername = ordinal(power)
 
-    description = format_docstr(('''
+    description = ('''
             Daily average temperature (degrees C){raised}
 
             Leap years are removed before counting days (uses a 365 day
@@ -172,7 +172,7 @@ def tas_poly(ds, power, varname):
             '''.format(
                 raised='' if power == 1 else (
                     ' raised to the {powername} power'
-                    .format(powername=powername)))).strip())
+                    .format(powername=powername)))).strip()
 
     ds1 = xr.Dataset()
 
