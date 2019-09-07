@@ -96,36 +96,6 @@ def _aggregate_reindexed_data_to_regions(
     return weighted
 
 
-def aggregate_array(arr, weight_df, weight_col, region_cols, lon_name='longitude', lat_name='latitude'):
-    extra_dims = [d for d in arr.dims if d not in [lon_name, lat_name]]
-
-    reindexed = arr.sel(**{
-        lon_name: weight_df.rename_axis('SEGMENT_INDEX')[lon_name].to_xarray(),
-        lat_name: weight_df.rename_axis('SEGMENT_INDEX')[lat_name].to_xarray()})
-
-    for rc in region_cols:
-        reindexed[rc] = weight_df.rename_axis('SEGMENT_INDEX')[rc].to_xarray()
-
-    reindexed[weight_col] = weight_df.rename_axis('SEGMENT_INDEX')[weight_col].to_xarray()
-
-    reindexed_df = (
-        reindexed.to_dataset(name='__temp_weighting_output_variable__').to_dataframe())
-
-    reindexed_df['__temp_weighted_output_variable__'] = (
-        reindexed_df[weight_col] * reindexed_df.__temp_weighting_output_variable__)
-
-    # make sure we don't count weight where we don't have data
-    reindexed_df[weight_col] = (
-        reindexed_df[weight_col].where(
-            pd.notnull(reindexed_df.__temp_weighting_output_variable__)))
-
-    aggregated = (
-        reindexed_df.reset_index().groupby(
-            region_cols + extra_dims)[[weight_col, '__temp_weighted_output_variable__']].sum())
-
-    return aggregated.__temp_weighted_output_variable__ * ((1. / aggregated[weight_col]).fillna(0))
-
-
 def weighted_aggregate_grid_to_regions(
         ds,
         variable,
@@ -163,7 +133,7 @@ def weighted_aggregate_grid_to_regions(
     """
 
     if weights is None:
-        weights = _prepare_spatial_weights_data()
+        weights = prepare_spatial_weights_data()
 
     ds = _reindex_spatial_data_to_regions(ds, weights)
     ds = _aggregate_reindexed_data_to_regions(
@@ -177,11 +147,9 @@ def weighted_aggregate_grid_to_regions(
 
 
 @toolz.memoize
-def _prepare_spatial_weights_data(weights_file=None):
+def prepare_spatial_weights_data(weights_file):
     """
     Rescales the pix_cent_x colum values
-
-    Requires the :py:mod:`datafs` package.
 
     Parameters
     ----------
@@ -192,18 +160,7 @@ def _prepare_spatial_weights_data(weights_file=None):
     .. note:: unnecessary if we can standardize our input
     """
 
-    import datafs
-
-    if weights_file is None:
-        weights_file = WEIGHTS_FILE
-
-        api = datafs.get_api()
-        archive = api.get_archive(weights_file)
-
-        with archive.open('r') as f:
-            df = pd.read_csv(f)
-    else:
-        df = pd.read_csv(weights_file)
+    df = pd.read_csv(weights_file)
 
     # Re-label out-of-bounds pixel centers
     df.set_value((df['pix_cent_x'] == 180.125), 'pix_cent_x', -179.875)
