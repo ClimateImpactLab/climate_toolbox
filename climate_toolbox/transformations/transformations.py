@@ -5,7 +5,7 @@ from climate_toolbox.utils.utils import \
     remove_leap_days, convert_kelvin_to_celsius
 
 
-def snyder_edd(tasmin, tasmax, threshold):
+def snyder_edd(tasmin, tasmax, threshold, **unused_kwargs):
     r"""
     Snyder exceedance degree days/cooling degree days
 
@@ -90,7 +90,7 @@ def snyder_edd(tasmin, tasmax, threshold):
     return res
 
 
-def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high):
+def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high, **unused_kwargs):
     r"""
     Snyder growing degree days
 
@@ -144,7 +144,7 @@ def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high):
     return res
 
 
-def validate_edd_snyder_agriculture(ds, thresholds):
+def validate_edd_snyder_agriculture(ds, thresholds, **unused_kwargs):
     msg_null = 'hierid dims do not match 24378'
 
     assert ds.hierid.shape == (24378,), msg_null
@@ -154,7 +154,7 @@ def validate_edd_snyder_agriculture(ds, thresholds):
     return
 
 
-def tas_poly(ds, power, varname):
+def tas_poly(ds, power, varname, **unused_kwargs):
     """
     Daily average temperature (degrees C), raised to a power
 
@@ -163,6 +163,7 @@ def tas_poly(ds, power, varname):
     """
 
     powername = ordinal(power)
+    varname = 'tas-poly-{}'.format(power) if power > 1 else 'tas'
 
     description = ('''
             Daily average temperature (degrees C){raised}
@@ -201,6 +202,22 @@ def tas_poly(ds, power, varname):
     ds1[varname].attrs['variable'] = varname
 
     return ds1
+
+
+def validate_tas_poly(
+        ds, power, valid_tas_range=(-20, 55), assert_no_nans=True):
+
+    mint = ds.tas.sel(lat=slice(-60, 70)).min()
+    maxt = ds.tas.sel(lat=slice(-60, 70)).max()
+
+    min_msg = "min value {} outside allowed range".format(mint)
+    assert mint >= min(0, valid_tas_range[0]**power), min_msg
+
+    max_msg = "max value {} outside allowed range".format(mint)
+    assert maxt <= (valid_tas_range[1]**power), max_msg
+
+    if assert_no_nans:
+        assert ds.tas.notnull().all(), "NaNs found in the data"
 
 
 def ordinal(n):

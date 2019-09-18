@@ -8,22 +8,21 @@ import numpy as np
 
 def convert_kelvin_to_celsius(df, temp_name):
     """ Convert Kelvin to Celsius """
+
     df_attrs = df[temp_name].attrs
     df[temp_name] = df[temp_name] - 273.15
+
     # update attrs & unit information
     df[temp_name].attrs.update(df_attrs)
     df[temp_name].attrs['units'] = 'C'
-    df[temp_name].attrs['valid_min'] = -108.78788
-    df[temp_name].attrs['valid_max'] = 62.02828
 
     return df
 
 
 def convert_lons_mono(ds, lon_name='longitude'):
     """ Convert longitude from -180-180 to 0-360 """
-    ds[lon_name].values = np.where(
-        ds[lon_name].values < 0, 360 + ds[lon_name].values, ds[lon_name].values
-        )
+    ds[lon_name].values = xr.where(
+        ds[lon_name] < 0, 360 + ds[lon_name], ds[lon_name]).values
 
     # sort the dataset by the new lon values
     ds = ds.sel(**{lon_name: np.sort(ds[lon_name].values)})
@@ -34,7 +33,7 @@ def convert_lons_mono(ds, lon_name='longitude'):
 def convert_lons_split(ds, lon_name='longitude'):
     """ Convert longitude from 0-360 to -180-180 """
     ds[lon_name].values = xr.where(
-        ds[lon_name] > 180, ds[lon_name] - 360, ds[lon_name])
+        ds[lon_name] > 180, ds[lon_name] - 360, ds[lon_name]).values
 
     # sort the dataset by the new lon values
     ds = ds.sel(**{lon_name: np.sort(ds[lon_name].values)})
@@ -42,19 +41,30 @@ def convert_lons_split(ds, lon_name='longitude'):
     return ds
 
 
-def rename_coords_to_lon_and_lat(ds):
-    """ Rename Dataset spatial coord names to:
-        lat, lon
+def rename_coords_to_lon_and_lat(ds, lon_name=None, lat_name=None):
+    """ Rename Dataset spatial coord names to lat, lon
     """
-    if 'latitude' in ds.coords:
-        ds = ds.rename({'latitude': 'lat'})
-    if 'longitude' in ds.coords:
-        ds = ds.rename({'longitude': 'lon'})
-    elif 'long' in ds.coords:
-        ds = ds.rename({'long': 'lon'})
+    if lat_name is None:
+        lat_name = ['latitude']
+    else:
+        lat_name = [lat_name]
 
-    if 'z' in ds.coords:
-        ds = ds.drop('z').squeeze()
+    for candidate in lat_names:
+        if canidate == 'lat':
+            continue
+        if candidate in ds.coords:
+            ds = ds.rename({candidate: 'lat'})
+
+    if lon_name is None:
+        lon_names = ['lng', 'long', 'longitude']
+    else:
+        lon_names = [lon_name]
+
+    for candidate in lon_names:
+        if canidate == 'lon':
+            continue
+        if candidate in ds.coords:
+            ds = ds.rename({candidate: 'lon'})
 
     return ds
 
@@ -87,11 +97,6 @@ def season_boundaries(growing_days):
     """ Returns the sorted start and end date of growing season
     """
 
-    # the longitude values of the data is off, we need to scale it
-    growing_days.longitude.values = growing_days.longitude.values - 180
-    # we then sort by longitude
-    growing_days = growing_days.sortby('longitude')
-
     # construct the ds
     gdd_sorted = xr.DataArray(
         # xarray has no method to sort along an axis
@@ -121,10 +126,10 @@ def get_daily_growing_season_mask(lat, lon, time, growing_days_path):
 
     Parameters
     ----------
-    lat: xr.DataArray coords object
-    lon: xr.DataArray coords object
-    time: xr.DataArray coords object
-    growing_days_path: str
+    lat : DataArray
+    lon : DataArray
+    time : DataArray
+    growing_days_path : str
 
     Returns
     -------
@@ -139,9 +144,10 @@ def get_daily_growing_season_mask(lat, lon, time, growing_days_path):
     min_day, max_day = season_boundaries(growing_days)
 
     data = np.ones((lat.shape[0], lon.shape[0], time.shape[0]))
+
     # create an array of ones in the shape of the data
     ones = xr.DataArray(
-                    data, coords=[lat, lon, time], dims=['lat', 'lon', 'time'])
+        data, coords=[lat, lon, time], dims=['lat', 'lon', 'time'])
 
     # mask the array around the within calendar year start and end times
     # of growing season
