@@ -4,7 +4,7 @@ after_success:
 - coveralls
 deploy:
   true:
-    python: 2.7
+    python: 3.6
     repo: ClimateImpactLab/climate_toolbox
     tags: true
   distributions: sdist bdist_wheel
@@ -42,13 +42,10 @@ install:
   python setup.py install; python -m pip install -r requirements_dev.txt; conda install
   --yes --file requirements_conda.txt; else pip install -U tox-travis; fi'
 language: python
-matrix:
-  allow_failures:
-  - env: TEST_ENV=conda
-    python: 3.4
 python:
+- 3.7
+- 3.6
 - 3.5
-- 3.4
 - 2.7
 script:
 - if [[ "$TEST_ENV" == "conda" ]]; then export PATH=$HOME/miniconda/bin:$PATH; source
