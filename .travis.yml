@@ -47,6 +47,10 @@ python:
 - 3.6
 - 3.5
 - 2.7
+matrix:
+  allow_failures:
+  - env: TEST_ENV=tox
+    python: 3.7
 script:
 - if [[ "$TEST_ENV" == "conda" ]]; then export PATH=$HOME/miniconda/bin:$PATH; source
   activate test-env; python -m pytest; sphinx-apidoc -o docs climate_toolbox; sphinx-build
