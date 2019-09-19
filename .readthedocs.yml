@@ -1,0 +1,9 @@
+version: 2
+
+python:
+   version: 3.7
+   install:
+      - requirements: requirements.txt
+      - requirements: requirements_dev.txt
+      - requirements: requirements_conda.txt
+      - method: pip
