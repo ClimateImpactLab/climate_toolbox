@@ -50,7 +50,7 @@ def transform_and_weighted_aggregate_climate_data(
         extra_aggregation_kwargs = {}
 
     if validator is None:
-        validator = lambda x: *args, **kwargs, None
+        validator = lambda x, *args, **kwargs: None
 
     if extra_validation_kwargs is None:
         extra_validation_kwargs = {}
