@@ -6,4 +6,3 @@ python:
       - requirements: requirements.txt
       - requirements: requirements_dev.txt
       - requirements: requirements_conda.txt
-      - method: pip
