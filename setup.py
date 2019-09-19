@@ -4,12 +4,7 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
-
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
+from description import long_description
 
 requirements = [
     'Click>=6.0',
@@ -31,7 +26,7 @@ setup(
     name='climate_toolbox',
     version='0.1.5',
     description="Tools for climate data wrangling",
-    long_description=readme + '\n\n' + history,
+    long_description=long_description,
     author="Justin Simcock",
     author_email='jsimcock@rhg.com',
     url='https://github.com/ClimateImpactLab/climate_toolbox',
