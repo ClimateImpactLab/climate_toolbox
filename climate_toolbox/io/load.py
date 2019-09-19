@@ -8,7 +8,7 @@ from climate_toolbox.utils.utils import (
 import climate_toolbox.io.sources as sources
 
 def standardize_climate_data(
-        ds, lon_name=lon_name, lat_name=lat_name, source=None):
+        ds, lon_name='lon', lat_name='lat', source=None):
     """
     Standardize dimensions and units for common surface climate data variables
 
@@ -33,7 +33,7 @@ def standardize_climate_data(
         ds = sources.standardize_source_data(ds, source=source)
     else:
         ds = rename_coords_to_lon_and_lat(ds)
-        ds = convert_lons_split(ds, lon_name=lon_names)
+        ds = convert_lons_split(ds, lon_name=lon_name)
 
     return ds
 

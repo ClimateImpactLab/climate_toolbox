@@ -80,7 +80,7 @@ def transform_and_weighted_aggregate_climate_data(
     if metadata is not None:
         data.attrs.update({
             k: v
-            for k, v in in dict(**metadata, **iteration_kwargs).items()
+            for k, v in dict(**metadata, **iteration_kwargs).items()
             if k in assign_attrs_list})
 
     if interactive:

@@ -6,17 +6,17 @@ import xarray as xr
 import numpy as np
 
 
-def convert_kelvin_to_celsius(df, temp_name):
+def convert_kelvin_to_celsius(ds, temp_name):
     """ Convert Kelvin to Celsius """
 
-    df_attrs = df[temp_name].attrs
-    df[temp_name] = df[temp_name] - 273.15
+    ds_attrs = ds[temp_name].attrs
+    ds[temp_name] = ds[temp_name] - 273.15
 
     # update attrs & unit information
-    df[temp_name].attrs.update(df_attrs)
-    df[temp_name].attrs['units'] = 'C'
+    ds[temp_name].attrs.update(ds_attrs)
+    ds[temp_name].attrs['units'] = 'C'
 
-    return df
+    return ds
 
 
 def convert_lons_mono(ds, lon_name='longitude'):
@@ -45,12 +45,12 @@ def rename_coords_to_lon_and_lat(ds, lon_name=None, lat_name=None):
     """ Rename Dataset spatial coord names to lat, lon
     """
     if lat_name is None:
-        lat_name = ['latitude']
+        lat_names = ['latitude']
     else:
-        lat_name = [lat_name]
+        lat_names = [lat_name]
 
     for candidate in lat_names:
-        if canidate == 'lat':
+        if candidate == 'lat':
             continue
         if candidate in ds.coords:
             ds = ds.rename({candidate: 'lat'})
@@ -61,7 +61,7 @@ def rename_coords_to_lon_and_lat(ds, lon_name=None, lat_name=None):
         lon_names = [lon_name]
 
     for candidate in lon_names:
-        if canidate == 'lon':
+        if candidate == 'lon':
             continue
         if candidate in ds.coords:
             ds = ds.rename({candidate: 'lon'})

@@ -5,7 +5,7 @@ from climate_toolbox.utils.utils import \
     remove_leap_days, convert_kelvin_to_celsius
 
 
-def snyder_edd(tasmin, tasmax, threshold, **unused_kwargs):
+def snyder_edd(tasmin_tasmax, threshold, **unused_kwargs):
     r"""
     Snyder exceedance degree days/cooling degree days
 
@@ -43,11 +43,12 @@ def snyder_edd(tasmin, tasmax, threshold, **unused_kwargs):
     Parameters
     ----------
 
-    tasmin : xarray.DataArray
-        Daily minimum temperature (degrees C)
-
-    tasmax : xarray.DataArray
-        Daily maximum temperature (degrees C)
+    tasmin_tasmax : tuple of xarray.Datasets
+        tuple containing two :py:class:`xarray.DataArray` objects, in the order
+        ``(tasmin, tasmax)``. tasmin should contain a variable ``tasmin`` with
+        daily minimum surface air temperature and tasmax should contain a
+        variable ``tasmax`` with daily minimum surface temperature. The units
+        should be the same as the threshold.
 
     threshold : int, float, xarray.DataArray
         Threshold (degrees C)
@@ -60,6 +61,9 @@ def snyder_edd(tasmin, tasmax, threshold, **unused_kwargs):
 
     """
 
+    tasmin = tasmin_tasmax[0].tasmin
+    tasmax = tasmin_tasmax[1].tasmax
+
     # Check for unit agreement
     assert tasmin.units == tasmax.units
 
@@ -69,7 +73,7 @@ def snyder_edd(tasmin, tasmax, threshold, **unused_kwargs):
     # compute useful quantities for use in the transformation
     snyder_mean = ((tasmax + tasmin)/2)
     snyder_width = ((tasmax - tasmin)/2)
-    snyder_theta = xr.ufuncs.arcsin((threshold - snyder_mean)/snyder_width)
+    snyder_theta = np.arcsin((threshold - snyder_mean)/snyder_width)
 
     # the trasnformation is computed using numpy arrays, taking advantage of
     # numpy's second where clause. Note that in the current dev build of
@@ -85,9 +89,20 @@ def snyder_edd(tasmin, tasmax, threshold, **unused_kwargs):
         snyder_mean - threshold)
 
     res.attrs['units'] = (
-        'degreedays_{}{}'.format(threshold, tasmax.attrs['units']))
+        'degreedays_{}{}'.format(threshold, tasmax.attrs.get('units', '')))
 
-    return res
+    out_ds = xr.Dataset({'edd': res})
+
+    out_ds['edd'].attrs['long_title'] = 'Exceedance degree days'
+    out_ds['edd'].attrs['description'] = (
+        'Exceedance degree days computed using the synder diurnal cycle '
+        'interpolation method, computed above a threshold of '
+        '{threshold}{units}.'
+        .format(
+            threshold=threshold,
+            units=tasmax.attrs.get('units', '')))
+
+    return out_ds
 
 
 def snyder_gdd(tasmin_tasmax, threshold_low, threshold_high, **unused_kwargs):
@@ -130,19 +145,32 @@ def snyder_gdd(tasmin_tasmax, threshold_low, threshold_high, **unused_kwargs):
 
     """
 
+    tasmin, tasmax = tasmin_tasmax
+
     # Check for unit agreement
-    assert tasmin.units == tasmax.units
+    assert tasmin.tasmin.units == tasmax.tasmax.units
 
     res = (
-        snyder_edd(tasmin, tasmax, threshold_low)
-        - snyder_edd(tasmin, tasmax, threshold_high))
+        snyder_edd((tasmin, tasmax), threshold_low).edd
+        - snyder_edd((tasmin, tasmax), threshold_high).edd)
 
     res.attrs['units'] = (
         'degreedays_{}-{}{}'
-        .format(threshold_low, threshold_high, tasmax.attrs['units']))
+        .format(threshold_low, threshold_high, tasmax.tasmax.attrs.get('units', '')))
 
+    out_ds = xr.Dataset({'gdd': res})
 
-    return res
+    out_ds['gdd'].attrs['long_title'] = 'Growing degree days'
+    out_ds['gdd'].attrs['description'] = (
+        'Growing degree days computed using the synder diurnal cycle '
+        'interpolation method, computed between thresholds of '
+        '{threshold_low}{units} and {threshold_high}{units}.'
+        .format(
+            threshold_high=threshold_high,
+            threshold_low=threshold_low,
+            units=tasmax.tasmax.attrs.get('units', '')))
+
+    return out_ds
 
 
 def validate_snyder_edd(ds, thresholds, assert_no_nans=False, **unused_kwargs):
@@ -166,16 +194,13 @@ def validate_snyder_edd(ds, thresholds, assert_no_nans=False, **unused_kwargs):
     return
 
 
-def tas_poly(ds, power, varname, **unused_kwargs):
+def tas_poly(ds, power, variable, **unused_kwargs):
     """
     Daily average temperature (degrees C), raised to a power
 
     Leap years are removed before counting days (uses a 365 day
     calendar).
     """
-
-    powername = ordinal(power)
-    varname = 'tas-poly-{}'.format(power) if power > 1 else 'tas'
 
     description = ('''
             Daily average temperature (degrees C){raised}
@@ -187,13 +212,13 @@ def tas_poly(ds, power, varname, **unused_kwargs):
                     ' raised to the {powername} power'
                     .format(powername=powername)))).strip()
 
-    ds1 = xr.Dataset()
+    out_ds = xr.Dataset()
 
     # remove leap years
     ds = remove_leap_days(ds)
 
     # do transformation
-    ds1[varname] = (ds.tas)**power
+    out_ds[variable] = (ds.tas)**power
 
     # ======================== MOVE THE FOLLOWING TO CIL WRAPPER ==============
     # This is the worst and is impactlab specific until brewster can update the
@@ -203,21 +228,21 @@ def tas_poly(ds, power, varname, **unused_kwargs):
     # Replace datetime64[ns] 'time' with YYYYDDD int 'day'
     if ds.dims['time'] > 365:
         raise ValueError
-    ds1.coords['day'] = ds['time.year']*1000 + np.arange(1, len(ds.time)+1)
-    ds1 = ds1.swap_dims({'time': 'day'})
-    ds1 = ds1.drop('time')
-    ds1 = ds1.rename({'day': 'time'})
+    out_ds.coords['day'] = ds['time.year']*1000 + np.arange(1, len(ds.time)+1)
+    out_ds = out_ds.swap_dims({'time': 'day'})
+    out_ds = out_ds.drop('time')
+    out_ds = out_ds.rename({'day': 'time'})
     # ======================== MOVE THE ABOVE TO CIL WRAPPER ==================
 
     # document variable
-    ds1[varname].attrs['units'] = (
+    out_ds[variable].attrs['units'] = (
         'C^{}'.format(power) if power > 1 else 'C')
 
-    ds1[varname].attrs['long_title'] = description.splitlines()[0]
-    ds1[varname].attrs['description'] = description
-    ds1[varname].attrs['variable'] = varname
+    out_ds[variable].attrs['long_title'] = description.splitlines()[0]
+    out_ds[variable].attrs['description'] = description
+    out_ds[variable].attrs['variable'] = variable
 
-    return ds1
+    return out_ds
 
 
 def validate_tas_poly(

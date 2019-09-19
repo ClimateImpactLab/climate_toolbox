@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from climate_toolbox.utils.utils import (
     rename_coords_to_lon_and_lat,
     convert_lons_split,
+    convert_kelvin_to_celsius,
 )
 
 __all__ = ['KNOWN_SOURCES', 'standardize_source_data']
@@ -25,7 +26,7 @@ def standardize_kelvin_temperature_data(ds):
         assert all_values_null_or_valid, "values outside range [-55, 55] C"
 
         # convert to Celsius
-        ds['tas'] = ds['tas'] - 273.15
+        convert_kelvin_to_celsius(ds, 'tas')
 
     if 'tasmin' in ds.data_vars:
         all_values_null_or_valid = (
@@ -35,7 +36,7 @@ def standardize_kelvin_temperature_data(ds):
         assert all_values_null_or_valid, "values outside range [-55, 55] C"
 
         # convert to Celsius
-        ds['tasmin'] = ds['tasmin'] - 273.15
+        convert_kelvin_to_celsius(ds, 'tasmin')
 
     if 'tasmax' in ds.data_vars:
         all_values_null_or_valid = (
@@ -45,7 +46,7 @@ def standardize_kelvin_temperature_data(ds):
         assert all_values_null_or_valid, "values outside range [-55, 55] C"
 
         # convert to Celsius
-        ds['tasmax'] = ds['tasmax'] - 273.15
+        convert_kelvin_to_celsius(ds, 'tasmax')
 
 def standardize_global_meterological_forcing_dataset_v1(ds):
 
