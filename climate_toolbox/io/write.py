@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+
 import os
 
 def netcdf_writer(ds, path, **unused_kwargs):
