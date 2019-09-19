@@ -38,25 +38,25 @@ def transform_and_weighted_aggregate_climate_data(
         loader_kwargs = {}
 
     if transform is None:
-        transform = lambda x, **args, **kwargs: x
+        transform = lambda x, *args, **kwargs: x
 
     if extra_transform_kwargs is None:
         extra_transform_kwargs = {}
 
     if aggregator is None:
-        aggregator = lambda x, **args, **kwargs: x
+        aggregator = lambda x, *args, **kwargs: x
 
     if extra_aggregation_kwargs is None:
         extra_aggregation_kwargs = {}
 
     if validator is None:
-        validator = lambda x: **args, **kwargs, None
+        validator = lambda x: *args, **kwargs, None
 
     if extra_validation_kwargs is None:
         extra_validation_kwargs = {}
 
     if writers is None:
-        writers = [lambda  x, **args, **kwargs: None]
+        writers = [lambda  x, *args, **kwargs: None]
 
     if extra_writer_kwargs is None:
         extra_writer_kwargs = {}
