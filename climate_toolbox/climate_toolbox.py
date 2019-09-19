@@ -21,6 +21,7 @@ def transform_and_weighted_aggregate_climate_data(
         writers=None,
         extra_writer_kwargs=None,
         metadata=None,
+        assign_attrs_list=None,
         interactive=False,
         logger=None,
         **iteration_kwargs):
@@ -59,6 +60,9 @@ def transform_and_weighted_aggregate_climate_data(
     if extra_writer_kwargs is None:
         extra_writer_kwargs = {}
 
+    if assign_attrs_list is None:
+        assign_attrs_list = []
+
     logger.debug('loading climate data')
     data = climate_data_loader(**loader_kwargs, **iteration_kwargs)
 
@@ -73,7 +77,10 @@ def transform_and_weighted_aggregate_climate_data(
 
     logger.debug('updating metadata')
     if metadata is not None:
-        data.attrs.update(metadata, **iteration_kwargs)
+        data.attrs.update({
+            k: v
+            for k, v in in dict(**metadata, **iteration_kwargs).items()
+            if k in assign_attrs_list})
 
     if interactive:
         return data
