@@ -16,8 +16,8 @@ def standardize_climate_data(
         - dimension names: lon and lat
         - lon to -180 to 180 and
         - for known sources, drops length 0 or 1 z/alt/pres dimension
-        - for known sources, standardizes variable names for tavg, tmin, tmax,
-          & precip
+        - for known sources, standardizes variable names and units for tavg,
+        tmin, tmax, & precip
 
     Parameters
     ----------

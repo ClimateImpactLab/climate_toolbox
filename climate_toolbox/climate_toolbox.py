@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import climate_toolbox.io
 import logging
 
-logger = logging.getLogger('uploader')
+logger = logging.getLogger('climate_toolbox')
 
 def transform_and_weighted_aggregate_climate_data(
         climate_data_loader=None,
@@ -28,6 +28,7 @@ def transform_and_weighted_aggregate_climate_data(
     '''
 
     '''
+    logger.info('starting')
 
     if climate_data_loader is None:
         climate_data_loader = (
@@ -86,7 +87,7 @@ def transform_and_weighted_aggregate_climate_data(
         return data
 
     logger.debug('writing results')
-    for writer in writers:
-        writer(data, **extra_writer_kwargs, **iteration_kwargs)
+    for wi, writer in enumerate(writers):
+        writer(data, **extra_writer_kwargs[wi], **iteration_kwargs)
 
-    logger.debug('done')
+    logger.info('done')

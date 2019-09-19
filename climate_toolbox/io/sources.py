@@ -12,6 +12,41 @@ def standardize_berkeley_earth_data(ds):
     raise NotImplementedError(
         "needs work to combine climatology and temperature variables")
 
+def standardize_kelvin_temperature_data(ds):
+    '''
+    Convert kelvin to degrees C and assert reasonable surface temperature bounds
+    '''
+
+    if 'tas' in ds.data_vars:
+        all_values_null_or_valid = (
+            ((ds['tas'] > -55 + 273.15) & (ds['tas'] < 50 + 273.15))
+            | (ds['tas'].isnull())).all()
+
+        assert all_values_null_or_valid, "values outside range [-55, 55] C"
+
+        # convert to Celsius
+        ds['tas'] = ds['tas'] - 273.15
+
+    if 'tasmin' in ds.data_vars:
+        all_values_null_or_valid = (
+            ((ds['tasmin'] > -75 + 273.15) & (ds['tasmin'] < 40 + 273.15))
+            | (ds['tasmin'].isnull())).all()
+
+        assert all_values_null_or_valid, "values outside range [-55, 55] C"
+
+        # convert to Celsius
+        ds['tasmin'] = ds['tasmin'] - 273.15
+
+    if 'tasmax' in ds.data_vars:
+        all_values_null_or_valid = (
+            ((ds['tasmax'] > -45 + 273.15) & (ds['tasmax'] < 55 + 273.15))
+            | (ds['tasmax'].isnull())).all()
+
+        assert all_values_null_or_valid, "values outside range [-55, 55] C"
+
+        # convert to Celsius
+        ds['tasmax'] = ds['tasmax'] - 273.15
+
 def standardize_global_meterological_forcing_dataset_v1(ds):
 
     # standardize dimension names
@@ -28,6 +63,8 @@ def standardize_global_meterological_forcing_dataset_v1(ds):
         'tavg': 'tas',
         'prcp': 'precip'})
 
+    standardize_kelvin_temperature_data(ds)
+
     return ds
 
 def standardize_global_meterological_forcing_dataset_v3(ds):
@@ -43,6 +80,8 @@ def standardize_global_meterological_forcing_dataset_v3(ds):
         'tmin': 'tasmin',
         'tavg': 'tas',
         'prcp': 'precip'})
+
+    standardize_kelvin_temperature_data(ds)
 
     return ds
 

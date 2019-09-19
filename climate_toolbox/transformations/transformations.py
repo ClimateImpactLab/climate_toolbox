@@ -90,7 +90,7 @@ def snyder_edd(tasmin, tasmax, threshold, **unused_kwargs):
     return res
 
 
-def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high, **unused_kwargs):
+def snyder_gdd(tasmin_tasmax, threshold_low, threshold_high, **unused_kwargs):
     r"""
     Snyder growing degree days
 
@@ -110,17 +110,17 @@ def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high, **unused_kwargs):
     Parameters
     ----------
 
-    tasmin : xarray.DataArray
-        Daily minimum temperature (degrees C)
-
-    tasmax : xarray.DataArray
-        Daily maximum temperature (degrees C)
+    tasmin_tasmax : tuple of xarray.DataArrays
+        tuple containing two :py:class:`xarray.DataArray` objects, in the order
+        ``(tasmin, tasmax)``. tasmin should contain daily minimum surface air
+        temperature and tasmax should contain daily minimum surface air
+        temperature. The units should be the same as the thresholds.
 
     threshold_low : int, float, xarray.DataArray
-        Lower threshold (degrees C)
+        Lower threshold (same units as datasets in tasmin_tasmax)
 
     threshold_high : int, float, xarray.DataArray
-        Upper threshold (degrees C)
+        Upper threshold (same units as datasets in tasmin_tasmax)
 
     Returns
     -------
@@ -138,19 +138,31 @@ def snyder_gdd(tasmin, tasmax, threshold_low, threshold_high, **unused_kwargs):
         - snyder_edd(tasmin, tasmax, threshold_high))
 
     res.attrs['units'] = (
-        'degreedays_{}-{}{}'.format(threshold_low, threshold_high, tasmax.attrs['units']))
+        'degreedays_{}-{}{}'
+        .format(threshold_low, threshold_high, tasmax.attrs['units']))
 
 
     return res
 
 
-def validate_edd_snyder_agriculture(ds, thresholds, **unused_kwargs):
+def validate_snyder_edd(ds, thresholds, assert_no_nans=False, **unused_kwargs):
+    '''
+    TODO:
+        This is a CIL-specific validation function. we need a way of
+        standardizing this.
+    '''
+
     msg_null = 'hierid dims do not match 24378'
 
     assert ds.hierid.shape == (24378,), msg_null
 
     for threshold in thresholds:
         assert threshold in list(ds.refTemp)
+
+    if assert_no_nans:
+        for v in ds.data_vars.keys():
+            assert ds[v].notnull().all(), "NaNs encountered in {}".format(v)
+
     return
 
 
@@ -181,17 +193,21 @@ def tas_poly(ds, power, varname, **unused_kwargs):
     ds = remove_leap_days(ds)
 
     # do transformation
-    ds1[varname] = (ds.tas - 273.15)**power
+    ds1[varname] = (ds.tas)**power
+
+    # ======================== MOVE THE FOLLOWING TO CIL WRAPPER ==============
+    # This is the worst and is impactlab specific until brewster can update the
+    # projection system to handle datetime objects. we should put this in
+    # climate_transform_specs as a custom writer.
 
     # Replace datetime64[ns] 'time' with YYYYDDD int 'day'
     if ds.dims['time'] > 365:
         raise ValueError
-
     ds1.coords['day'] = ds['time.year']*1000 + np.arange(1, len(ds.time)+1)
     ds1 = ds1.swap_dims({'time': 'day'})
     ds1 = ds1.drop('time')
-
     ds1 = ds1.rename({'day': 'time'})
+    # ======================== MOVE THE ABOVE TO CIL WRAPPER ==================
 
     # document variable
     ds1[varname].attrs['units'] = (
