@@ -294,7 +294,10 @@ def _prepare_spatial_weights_data(weights_file=None):
         df = pd.read_csv(weights_file)
 
     # Re-label out-of-bounds pixel centers
-    df.set_value((df['pix_cent_x'] == 180.125), 'pix_cent_x', -179.875)
+    df['pix_cent_x'] = df['pix_cent_x'].where(
+        df['pix_cent_x'] < 180,
+        df['pix_cent_x'] - 360,
+    )
 
     # probably totally unnecessary
     df.drop_duplicates()
