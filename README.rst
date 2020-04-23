@@ -29,4 +29,4 @@ Tools for climate data wrangling
 About this package
 ------------------
 
-Aggregate gridded downscaled (1/4) degree data to climate impact lab regions (heirids) using prepared segment weights files. Intended to be used with `jrnr <github.com/ClimateImpactLab/jrnr>`_ for use with SLURM on BRC
+Aggregate gridded downscaled (1/4) degree data to climate impact lab regions (heirids) using prepared segment weights files. Intended to be used with `jrnr <https://github.com/ClimateImpactLab/jrnr>`_ for use with SLURM on BRC
