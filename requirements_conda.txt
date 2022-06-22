@@ -1,5 +1,0 @@
-pandas==0.20.3
-xarray
-scipy
-numpy
-toolz
