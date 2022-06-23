@@ -48,10 +48,6 @@ def load_bcsd(fp, varname, lon_name="lon", broadcast_dims=("time",)):
     xr.Dataset
          xarray dataset loaded into memory
     """
-
-    if lon_name is not None:
-        lon_names = [lon_name]
-
     if hasattr(fp, "sel_points"):
         ds = fp
 
