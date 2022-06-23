@@ -5,13 +5,20 @@
 
 import pytest
 
-from climate_toolbox.utils.utils import *
+from climate_toolbox.utils.utils import (
+    rename_coords_to_lon_and_lat,
+    rename_coords_to_longitude_and_latitude,
+    convert_lons_mono,
+    convert_lons_split,
+    remove_leap_days,
+    convert_kelvin_to_celsius,
+)
 from climate_toolbox.aggregations.aggregations import (
     _reindex_spatial_data_to_regions,
     _aggregate_reindexed_data_to_regions,
 )
 from climate_toolbox.transformations.transformations import snyder_edd, snyder_gdd
-from climate_toolbox.io import *
+from climate_toolbox.io import standardize_climate_data
 
 import numpy as np
 import pandas as pd

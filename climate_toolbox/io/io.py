@@ -1,6 +1,6 @@
 import xarray as xr
 
-from climate_toolbox.utils.utils import *
+from climate_toolbox.utils.utils import rename_coords_to_lon_and_lat, convert_lons_split
 
 
 def standardize_climate_data(ds):
