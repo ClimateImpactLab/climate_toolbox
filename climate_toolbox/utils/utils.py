@@ -4,6 +4,7 @@ Handy functions for standardizing the format of climate data
 
 import xarray as xr
 import numpy as np
+import pandas as pd
 
 
 def convert_kelvin_to_celsius(df, temp_name):
