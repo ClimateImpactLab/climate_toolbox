@@ -146,7 +146,7 @@ def test_rename_coords_to_lon_and_lat():
     assert "lon" in coords and "long" not in coords
 
 
-def test_rename_coords_to_lon_and_lat():
+def test_rename_coords_to_lon_and_lat2():
     ds = xr.Dataset(coords={"latitude": [71.32, 72.58], "longitude": [156.6, 38.48]})
 
     ds = rename_coords_to_lon_and_lat(ds)
