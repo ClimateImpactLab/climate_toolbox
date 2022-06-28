@@ -8,7 +8,7 @@ PyYAML>=4.2b1
 pytest
 pytest-runner==2.11.1
 pytest-cov
-py==1.4.34
+py==1.10.0
 numpy
 pandas
 scipy
