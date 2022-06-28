@@ -19,29 +19,22 @@ def _reindex_spatial_data_to_regions(ds, df):
     """
 
     # use vectorized indexing in xarray >= 0.10
-    if LooseVersion(xr.__version__) > LooseVersion('0.9.999'):
+    if LooseVersion(xr.__version__) > LooseVersion("0.9.999"):
 
-        lon_indexer = xr.DataArray(df.lon.values, dims=('reshape_index', ))
-        lat_indexer = xr.DataArray(df.lat.values, dims=('reshape_index', ))
+        lon_indexer = xr.DataArray(df.lon.values, dims=("reshape_index",))
+        lat_indexer = xr.DataArray(df.lat.values, dims=("reshape_index",))
 
         return ds.sel(lon=lon_indexer, lat=lat_indexer)
 
     else:
-        res = ds.sel_points(
-            'reshape_index',
-            lat=df.lat.values,
-            lon=df.lon.values)
+        res = ds.sel_points("reshape_index", lat=df.lat.values, lon=df.lon.values)
 
         return res
 
 
 def _aggregate_reindexed_data_to_regions(
-        ds,
-        variable,
-        aggwt,
-        agglev,
-        weights,
-        backup_aggwt='areawt'):
+    ds, variable, aggwt, agglev, weights, backup_aggwt="areawt"
+):
     """
     Performs weighted avg for climate variable by region
 
@@ -69,39 +62,29 @@ def _aggregate_reindexed_data_to_regions(
     """
 
     ds.coords[agglev] = xr.DataArray(
-                weights[agglev].values,
-                dims={'reshape_index': weights.index.values})
+        weights[agglev].values, dims={"reshape_index": weights.index.values}
+    )
 
     # format weights
     ds[aggwt] = xr.DataArray(
-                weights[aggwt].values,
-                dims={'reshape_index': weights.index.values})
+        weights[aggwt].values, dims={"reshape_index": weights.index.values}
+    )
 
-    ds[aggwt] = (
-        ds[aggwt]
-        .where(ds[aggwt] > 0)
-        .fillna(weights[backup_aggwt].values))
+    ds[aggwt] = ds[aggwt].where(ds[aggwt] > 0).fillna(weights[backup_aggwt].values)
 
-    weighted = xr.Dataset({
-        variable: (
-            (
-                (ds[variable]*ds[aggwt])
-                .groupby(agglev)
-                .sum(dim='reshape_index')) /
-            (
-                ds[aggwt]
-                .groupby(agglev)
-                .sum(dim='reshape_index')))})
+    weighted = xr.Dataset(
+        {
+            variable: (
+                ((ds[variable] * ds[aggwt]).groupby(agglev).sum(dim="reshape_index"))
+                / (ds[aggwt].groupby(agglev).sum(dim="reshape_index"))
+            )
+        }
+    )
 
     return weighted
 
 
-def weighted_aggregate_grid_to_regions(
-        ds,
-        variable,
-        aggwt,
-        agglev,
-        weights=None):
+def weighted_aggregate_grid_to_regions(ds, variable, aggwt, agglev, weights=None):
     """
     Computes the weighted reshape of gridded data
 
@@ -136,12 +119,7 @@ def weighted_aggregate_grid_to_regions(
         weights = prepare_spatial_weights_data()
 
     ds = _reindex_spatial_data_to_regions(ds, weights)
-    ds = _aggregate_reindexed_data_to_regions(
-        ds,
-        variable,
-        aggwt,
-        agglev,
-        weights)
+    ds = _aggregate_reindexed_data_to_regions(ds, variable, aggwt, agglev, weights)
 
     return ds
 
@@ -163,14 +141,12 @@ def prepare_spatial_weights_data(weights_file):
     df = pd.read_csv(weights_file)
 
     # Re-label out-of-bounds pixel centers
-    df.set_value((df['pix_cent_x'] == 180.125), 'pix_cent_x', -179.875)
+    df.set_value((df["pix_cent_x"] == 180.125), "pix_cent_x", -179.875)
 
     # probably totally unnecessary
     df.drop_duplicates()
-    df.index.names = ['reshape_index']
+    df.index.names = ["reshape_index"]
 
-    df.rename(
-        columns={'pix_cent_x': 'lon', 'pix_cent_y': 'lat'},
-        inplace=True)
+    df.rename(columns={"pix_cent_x": "lon", "pix_cent_y": "lat"}, inplace=True)
 
     return df

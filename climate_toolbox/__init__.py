@@ -3,5 +3,5 @@
 """Top-level package for climate_toolbox."""
 
 __author__ = """Justin Simcock"""
-__email__ = 'jsimcock@rhg.com'
-__version__ = '0.1.5'
+__email__ = "jsimcock@rhg.com"
+__version__ = "0.1.5"
