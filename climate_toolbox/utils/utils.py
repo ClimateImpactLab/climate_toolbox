@@ -22,9 +22,7 @@ def convert_kelvin_to_celsius(df, temp_name):
 
 def convert_lons_mono(ds, lon_name="longitude"):
     """Convert longitude from -180-180 to 0-360"""
-    ds[lon_name].values = np.where(
-        ds[lon_name].values < 0, 360 + ds[lon_name].values, ds[lon_name].values
-    )
+    ds[lon_name] = xr.where(ds[lon_name] < 0, 360 + ds[lon_name], ds[lon_name])
 
     # sort the dataset by the new lon values
     ds = ds.sel(**{lon_name: np.sort(ds[lon_name].values)})
@@ -34,7 +32,7 @@ def convert_lons_mono(ds, lon_name="longitude"):
 
 def convert_lons_split(ds, lon_name="longitude"):
     """Convert longitude from 0-360 to -180-180"""
-    ds[lon_name].values = xr.where(ds[lon_name] > 180, ds[lon_name] - 360, ds[lon_name])
+    ds[lon_name] = xr.where(ds[lon_name] > 180, ds[lon_name] - 360, ds[lon_name])
 
     # sort the dataset by the new lon values
     ds = ds.sel(**{lon_name: np.sort(ds[lon_name].values)})
