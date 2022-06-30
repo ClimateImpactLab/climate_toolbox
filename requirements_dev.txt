@@ -1,14 +1,13 @@
 bumpversion==0.5.3
 wheel==0.29.0
 flake8
-tox==2.7.0
+tox==3.25.1
 coverage==4.4.1
 Sphinx==1.6.3
 PyYAML>=4.2b1
-pytest
+pytest==7.1.2
 pytest-runner==2.11.1
 pytest-cov
-py==1.4.34
 numpy
 pandas
 scipy
