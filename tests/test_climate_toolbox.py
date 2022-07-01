@@ -142,7 +142,6 @@ def test_rename_coords_to_lon_and_lat():
     coords = ds.coords
 
     assert "z" not in coords
-    assert coords.z is None
     assert "lon" in coords and "long" not in coords
 
 
