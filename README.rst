@@ -9,6 +9,9 @@ climate_toolbox
 .. image:: https://github.com/ClimateImpactLab/climate_toolbox/actions/workflows/pythonpackage.yaml/badge.svg
         :target: https://github.com/ClimateImpactLab/climate_toolbox/actions/workflows/pythonpackage.yaml
 
+.. image:: https://codecov.io/gh/ClimateImpactLab/climate_toolbox/branch/master/graph/badge.svg?token=9miBpNc9kh 
+        :target: https://codecov.io/gh/ClimateImpactLab/climate_toolbox
+
 .. image:: https://readthedocs.org/projects/climate-toolbox/badge/?version=latest
         :target: https://climate-toolbox.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
