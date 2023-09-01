@@ -1,5 +1,5 @@
 bumpversion==0.5.3
-wheel==0.40.0
+wheel==0.41.2
 flake8
 tox==3.25.1
 coverage==7.2.7
