@@ -2,7 +2,7 @@ bumpversion==0.5.3
 wheel==0.40.0
 flake8
 tox==3.25.1
-coverage==7.2.7
+coverage==7.3.0
 Sphinx==1.6.3
 PyYAML>=4.2b1
 pytest==7.4.0
